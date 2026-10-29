@@ -1,0 +1,89 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "opening_balance",
+        "deposit",
+        "withdrawal",
+        "transfer",
+        "interest",
+        "fee",
+        "adjustment"
+      ]
+    },
+    "amount": {
+      "type": "number"
+    },
+    "description": {
+      "type": "string"
+    },
+    "reference": {
+      "type": "string"
+    },
+    "balance_after": {
+      "type": "number"
+    },
+    "created_by_admin": {
+      "type": "boolean",
+      "default": false
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The actual date the transaction occurred (from source document for imports, or business date for live transactions)"
+    },
+    "posting_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The date the transaction was posted to the account (may differ from transaction_date)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "live",
+        "historical_import",
+        "admin_entry",
+        "system"
+      ],
+      "default": "live",
+      "description": "Origin of the transaction \u2014 live (system-generated), historical_import (from uploaded statement), admin_entry (manual), system (automated)"
+    },
+    "imported_statement_id": {
+      "type": "string",
+      "description": "Reference to the HistoricalStatement this was imported from (if source=historical_import)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "reversed"
+      ],
+      "default": "completed"
+    },
+    "transfer_direction": {
+      "type": "string",
+      "enum": [
+        "in",
+        "out",
+        "internal",
+        "external",
+        ""
+      ],
+      "default": "",
+      "description": "For transfer-type transactions: in=received, out=sent, internal=between own accounts, external=to/from another bank"
+    }
+  },
+  "required": [
+    "account_id",
+    "type",
+    "amount"
+  ]
+}
