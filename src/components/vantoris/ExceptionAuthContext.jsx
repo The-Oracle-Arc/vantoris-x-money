@@ -45,19 +45,12 @@ export function ExceptionAuthProvider({ children }) {
   // Trigger the exception auth modal for a specific action + target
   // Returns a promise that resolves with { success, grant, reason }
   const requestAuth = useCallback((user, actionKey, targetResource) => {
-    userRef.current = user;
-
-    // Audit: exception auth requested (never logs the credential)
-    logExceptionAuthEvent(user, actionKey, targetResource, null, null, 'EXCEPTION_AUTH_REQUESTED');
-
-    return new Promise((resolve) => {
-      resolveRef.current = resolve;
-      setAction(actionKey);
-      setTarget(targetResource || '*');
-      setCredential('');
-      setError('');
-      setLockoutRemaining(isLockedOut() ? getLockoutRemaining() : 0);
-      setIsOpen(true);
+    // Fail closed before collecting any credential: the server-side verifier is not configured.
+    logExceptionAuthEvent(user, actionKey, targetResource, null, null, 'EXCEPTION_AUTH_UNAVAILABLE');
+    return Promise.resolve({
+      success: false,
+      grant: null,
+      reason: 'Privileged exception authorization is not configured. No action was authorized.',
     });
   }, []);
 
