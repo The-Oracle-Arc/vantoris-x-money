@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 
+/** @param {{ title?: string, icon?: any, children?: import('react').ReactNode, delay?: number }} param0 */
 export default function ProfileSection({ title, icon: Icon, children, delay = 0 }) {
   return (
     <motion.div
@@ -23,6 +24,7 @@ export default function ProfileSection({ title, icon: Icon, children, delay = 0 
   );
 }
 
+/** @param {{ icon?: any, iconColor?: string, iconBg?: string, label: string, value?: any, onClick?: (() => void) | null, rightElement?: any, danger?: boolean }} param0 */
 export function ProfileRow({
   icon: Icon,
   iconColor = 'text-brass',
