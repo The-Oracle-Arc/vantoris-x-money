@@ -48,7 +48,7 @@ export default function AdminOverview() {
 
   if (loading) {
     return (
-      <OperationsPageLayout title="Daily Operations" description="Operational dashboard and queue management" icon={Briefcase} breadcrumb="Operations Workspace">
+      <OperationsPageLayout title="Daily Operations" description="Operational dashboard based on records returned by connected backend queries" icon={Briefcase} breadcrumb="Operations Workspace">
         <VantorisLoading className="h-64" />
       </OperationsPageLayout>
     );
@@ -69,10 +69,10 @@ export default function AdminOverview() {
 
       {/* Critical Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <PremiumStatCard hero label="Assets Under Management" value={formatCurrency(stats.totalBalance)} sublabel="Total across all accounts" icon={Wallet} accent="navy" onClick={() => navigate('/operations/finance')} />
-        <PremiumStatCard label="Total Members" value={stats.members} icon={Users} accent="blue" onClick={() => navigate('/operations/members')} />
-        <PremiumStatCard label="Pending Applications" value={stats.pendingApps} icon={FileText} accent="gold" onClick={() => navigate('/operations/applications')} />
-        <PremiumStatCard label="Pending Withdrawals" value={stats.pendingWithdrawals} icon={ArrowUpRight} accent="crimson" onClick={() => navigate('/operations/withdrawals')} />
+        <PremiumStatCard hero label="Returned account sample" value={formatCurrency(stats.totalBalance)} sublabel="Sum of up to 50 records; not a ledger total" icon={Wallet} accent="navy" onClick={() => navigate('/operations/finance')} />
+        <PremiumStatCard label="Member records in sample" value={stats.members} icon={Users} accent="blue" onClick={() => navigate('/operations/members')} />
+        <PremiumStatCard label="Pending applications (sample)" value={stats.pendingApps} icon={FileText} accent="gold" onClick={() => navigate('/operations/applications')} />
+        <PremiumStatCard label="Pending withdrawals (sample)" value={stats.pendingWithdrawals} icon={ArrowUpRight} accent="crimson" onClick={() => navigate('/operations/withdrawals')} />
       </div>
 
       {/* Pending Approvals + High Priority + Live Activity */}
@@ -87,9 +87,9 @@ export default function AdminOverview() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Activity size={16} className="text-navy" />
-            <h3 className="text-foreground font-semibold text-sm">Operations Queue</h3>
+            <h3 className="text-foreground font-semibold text-sm">Operations Queue · returned records</h3>
           </div>
-          <span className="text-gray text-xs">{recentItems.length} pending items</span>
+          <span className="text-gray text-xs">{recentItems.length} returned items</span>
         </div>
 
         {/* Desktop table */}
