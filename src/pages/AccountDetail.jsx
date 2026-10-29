@@ -28,67 +28,15 @@ import MonthlySummary from '@/components/vantoris/home/MonthlySummary';
 import { getEffectiveTxnDate, formatTxnDate, getWeekday, formatPeriod } from '@/lib/statementDates';
 
 const WITHDRAWAL_METHODS = [
-  {
-    value: 'ACH Transfer',
-    title: 'ACH Transfer',
-    speed: 'Fast',
-    time: '1-2 Business Days',
-    fee: '$0 standard fee',
-    limit: 'Up to $25,000 daily',
-    availability: 'Available for verified U.S. bank accounts',
-  },
-  {
-    value: 'Domestic Wire',
-    title: 'Domestic Wire',
-    speed: 'Same Day',
-    time: 'Same business day when submitted before cutoff',
-    fee: '$25 estimated fee',
-    limit: 'Up to $100,000 daily',
-    availability: 'U.S. routing and account number required',
-  },
-  {
-    value: 'International Wire',
-    title: 'International Wire',
-    speed: 'Global',
-    time: '2-5 Business Days',
-    fee: '$45 estimated fee',
-    limit: 'Subject to destination country review',
-    availability: 'SWIFT and beneficiary details required',
-  },
-  {
-    value: 'External Transfer',
-    title: 'External Transfer',
-    speed: 'Standard',
-    time: '2-3 Business Days',
-    fee: '$0 standard fee',
-    limit: 'Up to linked bank limits',
-    availability: 'Requires verified external account',
-  },
-  {
-    value: "Cashier's Check",
-    title: "Cashier's Check",
-    speed: 'Bank-Issued',
-    time: '1-2 Business Days',
-    fee: '$10 estimated fee',
-    limit: 'Up to $50,000 per check',
-    availability: 'Bank-issued check mailed to address',
-  },
-  {
-    value: 'Check by Mail',
-    title: 'Check by Mail',
-    speed: 'Mail',
-    time: '5-7 Business Days',
-    fee: '$10 estimated fee',
-    limit: 'Up to $10,000 per check',
-    availability: 'Optional mailed check delivery',
-  },
-
+  { value: 'ACH Transfer', title: 'ACH Transfer', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
+  { value: 'Domestic Wire', title: 'Domestic Wire', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
+  { value: 'International Wire', title: 'International Wire', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
+  { value: 'External Transfer', title: 'External Transfer', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
+  { value: "Cashier's Check", title: "Cashier's Check", speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
+  { value: 'Check by Mail', title: 'Check by Mail', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
 ];
 
-const DESTINATIONS = [
-  { id: 'saved-bank', title: 'Saved U.S. Bank', detail: 'Chase Checking ending 4821', type: 'Saved banks' },
-  { id: 'linked-account', title: 'Linked Account', detail: 'Savings ending 0188', type: 'Linked accounts' },
-];
+const DESTINATIONS = [];
 
 export default function AccountDetail() {
   const { id } = useParams();
