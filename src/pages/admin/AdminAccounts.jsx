@@ -716,7 +716,7 @@ export default function AdminAccounts() {
   );
 }
 
-function TransactionForm({ txnForm, setTxnForm, submitting, onSubmit, account, isEdit }) {
+function TransactionForm({ txnForm, setTxnForm, submitting, onSubmit, account, isEdit = false }) {
   return (
     <div className="space-y-4 mt-2">
       <div className="vantoris-card p-3">
