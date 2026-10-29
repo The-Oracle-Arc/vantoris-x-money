@@ -499,6 +499,81 @@ export default function Landing() {
         </section>
 
 
+        {/* Member experience — visual references, never presented as live account data. */}
+        <section id="member-preview" className="scroll-mt-24 bg-[#F4F6F9] border-y border-slate-200 py-16 sm:py-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="max-w-3xl">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-amber-700 mb-3">Member experience · design preview</p>
+              <h2 className="font-heading text-3xl sm:text-5xl font-bold tracking-tight text-navy">
+                A clearer view of your money.
+              </h2>
+              <p className="mt-4 text-slate-600 leading-relaxed">
+                Account overview, quick actions, and account types are shown here as visual concepts. Your signed-in workspace uses your authorized account records—not the sample balances or activity pictured in these references.
+              </p>
+            </div>
+
+            <div className="mt-9 grid lg:grid-cols-12 gap-5 items-start">
+              <figure className="lg:col-span-7 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+                <img
+                  src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0986.jpeg"
+                  alt="Illustrative desktop-sized member banking dashboard concept"
+                  className="block w-full h-auto"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption className="px-4 py-3 text-xs leading-relaxed text-slate-500">
+                  Dashboard layout reference only. The institution branding, balances, dates, and transactions in this image are not Vantoris account data.
+                </figcaption>
+              </figure>
+
+              <div className="lg:col-span-5 grid sm:grid-cols-2 lg:grid-cols-1 gap-5">
+                <figure className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md">
+                  <img
+                    src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0987.jpeg"
+                    alt="Illustrative mobile banking home screen concept"
+                    className="block w-full h-auto max-h-[480px] object-contain bg-[#F7F4EC]"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <figcaption className="px-4 py-3 text-xs leading-relaxed text-slate-500">
+                    Mobile composition reference; not a live screen or account statement.
+                  </figcaption>
+                </figure>
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-navy text-white">
+                      <Landmark size={20} aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h3 className="font-heading font-bold text-navy">Account choices</h3>
+                      <p className="text-xs text-slate-500">Product-card design reference</p>
+                    </div>
+                  </div>
+                  <img
+                    src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0982.jpeg"
+                    alt="Illustrative grid of checking, savings, certificate, and holiday account product cards"
+                    className="mt-4 block w-full h-auto rounded-xl"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                    Product names, rates, eligibility, and insurance claims must be confirmed for Vantoris before being represented as available services.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/register" className="inline-flex items-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white hover:bg-[#0E2A4A] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                Get started <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-navy hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                Member sign in
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Wallet pricing — transparent US-style schedule */}
         <section id="wallets" className="scroll-mt-24 bg-white border-b border-slate-200 py-16">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
