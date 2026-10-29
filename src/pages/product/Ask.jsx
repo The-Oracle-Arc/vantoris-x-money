@@ -25,7 +25,7 @@ function parseFlight(text) {
 export default function Ask() {
   const [input, setInput] = useState('');
   const [log, setLog] = useState([]);
-  const [draft, setDraft] = useState(null);
+  const [draft, setDraft] = useState(null);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState('');
 
   const status = useMemo(
     () => Object.values(PROVIDERS).map((p) => `${p.label}: ${p.status}`),
@@ -53,16 +53,22 @@ export default function Ask() {
       push('vantoris', `Prepared flight search ${flight.from} to ${flight.to}. Nothing is booked. Confirm to continue.`);
       return;
     }
-    let text = 'I can prepare a send or a flight, or open Money, Cards, Travel, Homes, and HeroBox. I do not execute until you confirm.';
-    if (privateLlmConfigured()) {
-      try {
-        const out = await askPrivateModel(q);
-        if (out.text) text = out.text;
-      } catch (e) {
-        text = e.message || 'Private model unavailable.';
+    try {
+      if (!privateLlmConfigured()) {
+        setError('Private AI availability cannot be verified from this device. Please try again later.');
+        return;
       }
+      const out = await askPrivateModel(q);
+      if (out.ok && out.text) {
+        push('vantoris', out.text, { source: 'private' });
+      } else {
+        setError(out.text || 'Private AI is unavailable. No AI answer was generated.');
+      }
+    } catch {
+      setError('Private AI is temporarily unavailable. No AI answer was generated.');
+    } finally {
+      setLoading(false);
     }
-    push('vantoris', text);
   }
 
   function confirm() {
@@ -89,7 +95,7 @@ export default function Ask() {
       <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-[11px] text-slate-500 space-y-1">
         {status.map((s) => <p key={s}>{s}</p>)}
       </div>
-      <div className="space-y-2 mb-4">
+      <div className="space-y-2 mb-4" aria-live="polite">
         {log.map((m, i) => (
           <div key={i} className={`rounded-2xl px-4 py-3 text-sm ${m.role === 'you' ? 'bg-navy text-white' : 'bg-white border border-slate-200'}`}>
             <p>{m.text}</p>
@@ -97,7 +103,7 @@ export default function Ask() {
           </div>
         ))}
       </div>
-      {draft && (
+      {error && (\n        <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">\n          <p>{error}</p>\n          <button type="button" onClick={() => { setError(''); ask(); }} disabled={loading || !input.trim()} className="mt-2 font-semibold underline disabled:opacity-50">Retry</button>\n        </div>\n      )}\n      {loading && <p role="status" className="mb-3 text-sm text-slate-500">Vantoris Intelligence is thinking…</p>}\n      {draft && (
         <div className="mb-4 rounded-2xl border border-brass/40 bg-brass/10 p-4 text-sm">
           <p className="font-semibold text-navy">{draft.type === 'send' ? `Send $${draft.amount.toFixed(2)}` : `Flight ${draft.from} → ${draft.to}`}</p>
           <p className="mt-1 text-slate-600">Confirm does not mean completed. A provider has to accept it.</p>
@@ -111,11 +117,11 @@ export default function Ask() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && ask()}
+          onKeyDown={(e) => e.key === 'Enter' && !loading && ask()}
           placeholder="Send $25 to Ada  ·  Book flight LOS to LHR"
           className="h-11 flex-1 rounded-xl border border-slate-200 px-3 text-sm"
         />
-        <button type="button" onClick={ask} className="rounded-xl bg-navy px-4 text-sm font-semibold text-white">Ask</button>
+        <button type="button" onClick={ask} disabled={loading || !input.trim()} className="rounded-xl bg-navy px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">{loading ? 'Thinking…' : 'Ask'}</button>
       </div>
     </ProductShell>
   );
