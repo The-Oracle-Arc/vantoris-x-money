@@ -25,7 +25,7 @@ function parseFlight(text) {
 export default function Ask() {
   const [input, setInput] = useState('');
   const [log, setLog] = useState([]);
-  const [draft, setDraft] = useState(null);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState('');
+  const [draft, setDraft] = useState(null);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState('');\n  const [lastQuestion, setLastQuestion] = useState('');
 
   const status = useMemo(
     () => Object.values(PROVIDERS).map((p) => `${p.label}: ${p.status}`),
@@ -103,7 +103,7 @@ export default function Ask() {
           </div>
         ))}
       </div>
-      {error && (\n        <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">\n          <p>{error}</p>\n          <button type="button" onClick={() => { setError(''); ask(); }} disabled={loading || !input.trim()} className="mt-2 font-semibold underline disabled:opacity-50">Retry</button>\n        </div>\n      )}\n      {loading && <p role="status" className="mb-3 text-sm text-slate-500">Vantoris Intelligence is thinking…</p>}\n      {draft && (
+      {error && (\n        <div role="alert" className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">\n          <p>{error}</p>\n          <button type="button" onClick={() => { setError(''); ask(lastQuestion); }} disabled={loading || !lastQuestion} className="mt-2 font-semibold underline disabled:opacity-50">Retry</button>\n        </div>\n      )}\n      {loading && <p role="status" className="mb-3 text-sm text-slate-500">Vantoris Intelligence is thinking…</p>}\n      {draft && (
         <div className="mb-4 rounded-2xl border border-brass/40 bg-brass/10 p-4 text-sm">
           <p className="font-semibold text-navy">{draft.type === 'send' ? `Send $${draft.amount.toFixed(2)}` : `Flight ${draft.from} → ${draft.to}`}</p>
           <p className="mt-1 text-slate-600">Confirm does not mean completed. A provider has to accept it.</p>
