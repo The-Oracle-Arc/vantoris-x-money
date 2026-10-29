@@ -100,7 +100,7 @@ export default function AgentChat({
 
   async function loadConversations() {
     try {
-      const convs = await base44.agents.listConversations();
+      const convs = await base44.agents.listConversations({});
       const deleted = getDeletedIds();
       const labels = getLabels();
       // Keep agent conversations isolated. Older records without an agent name are not
