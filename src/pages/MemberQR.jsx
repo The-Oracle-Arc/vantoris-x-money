@@ -80,7 +80,8 @@ export default function MemberQR() {
       return;
     }
     try {
-      const { BrowserQRCodeReader } = await import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
+      const scannerModuleUrl = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm';
+      const { BrowserQRCodeReader } = await import(/* @vite-ignore */ scannerModuleUrl);
       const reader = new BrowserQRCodeReader();
       readerRef.current = reader;
       setScanning(true);
@@ -103,7 +104,8 @@ export default function MemberQR() {
     event.target.value = '';
     if (!file) return;
     try {
-      const { BrowserQRCodeReader } = await import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
+      const scannerModuleUrl = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm';
+      const { BrowserQRCodeReader } = await import(/* @vite-ignore */ scannerModuleUrl);
       const reader = new BrowserQRCodeReader();
       const url = URL.createObjectURL(file);
       const result = await reader.decodeFromImageUrl(url);
