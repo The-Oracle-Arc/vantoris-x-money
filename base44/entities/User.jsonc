@@ -1,0 +1,48 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "The role of the user in the app",
+      "enum": [
+        "user",
+        "operations_officer",
+        "finance_officer",
+        "compliance_officer",
+        "executive",
+        "administrator",
+        "super_administrator",
+        "admin",
+        "customer_support",
+        "kyc_officer",
+        "operations_manager",
+        "treasury_officer",
+        "auditor",
+        "it_administrator",
+        "risk_officer",
+        "herobox_manager",
+        "volunteer_manager",
+        "shipping_manager",
+        "investment_manager",
+        "investment_officer"
+      ],
+      "default": "user"
+    },
+    "username": {
+      "type": "string",
+      "description": "The user's chosen unique username identifier (not an email, not a full name)"
+    },
+    "admin_notes": {
+      "type": "string",
+      "description": "Internal notes accessible only by authorized operations staff"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "Unique invite code for member referral tracking"
+    }
+  },
+  "required": [
+    "role"
+  ]
+}
