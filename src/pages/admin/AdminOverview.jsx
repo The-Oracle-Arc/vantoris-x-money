@@ -32,7 +32,7 @@ export default function AdminOverview() {
         base44.entities.WithdrawalRequest.list('-created_date', 50),
         base44.entities.Account.list('-created_date', 50),
       ]);
-      const totalBalance = accounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+      const totalBalance = accounts.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
       const pendingApps = apps.filter(a => a.application_status === 'pending').length;
       const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending').length;
       const memberCount = users.filter(u => u.role === 'user').length;
@@ -40,7 +40,7 @@ export default function AdminOverview() {
       const recent = [
         ...apps.filter(a => a.application_status === 'pending').map(a => ({ id: a.id, type: 'Application', name: a.full_name, detail: a.account_type, date: a.created_date, status: a.application_status })),
         ...withdrawals.filter(w => w.status === 'pending').map(w => ({ id: w.id, type: 'Withdrawal', name: `${formatCurrency(w.amount)}`, detail: w.method, date: w.created_date, status: w.status })),
-      ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
       setRecentItems(recent);
     } catch (e) { console.error(e); }
     setLoading(false);
