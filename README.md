@@ -1,61 +1,25 @@
 # Vantoris X Money
 
-Member banking app restyled to **X Money UI**, with full Vantoris/Base44 backend and isolated ops admin dashboard.
+Vantoris member app with the X Money-inspired member UI, Base44-backed application services, and a separated operations workspace.
 
-**Repo:** https://github.com/iamtheoracle/vantoris-x-money  
-**Netlify site:** https://vantoris-x-money.netlify.app  
-**Netlify dashboard:** https://app.netlify.com/projects/vantoris-x-money
+- Repository: https://github.com/iamtheoracle/vantoris-x-money
+- Recovery branch: `recovery/merge-vantoris-live`
+- Recovery pull request: https://github.com/iamtheoracle/vantoris-x-money/pull/2
 
-## Fixes applied (local + pushed core files)
+## Recovery status
 
-1. **MemberRoute import** in `App.jsx` — was missing; would crash authenticated routes
-2. **Dead sheet UI removed** from Home — quick actions always go to MoveMoney
-3. **Tabs via `?tab=`** — Account / Rewards / Activity share Home; BottomNav links to them
-4. **MoveMoney `?action=`** — opens send / request / add panel from query string
-5. **Ops isolation** — MemberRoute redirects ops users to `/operations`; admin layout unchanged
+This branch restores the original application entry point, route definitions, authentication context, Base44 client, member and operations screens, shared UI primitives, and the private LLM gateway/proxy files from `The-Oracle-Arc/vantoris-live`.
 
-## Quick actions (kept)
+**This is still a recovery-in-progress branch, not a production release.** The source repository contains substantially more files than have been restored so far. Remaining shared components, Base44 entity/function/workflow definitions, and other supporting modules still need to be recovered and audited. Original source contains no standalone raster card-image assets in its Git tree; visual assets appear to be implemented through components/styles or external references, which should be verified during UI QA.
 
-Deposit · Send · Request → `/move-money?action=…` (Zelle, QR, transfers, deposits intact).
+## Safety and release rules
 
-## What’s in this repo so far
+- Do not merge or deploy until the build, route coverage, authentication and authorization boundaries, backend integrations, and AI gateway have been verified.
+- Do not enter live member credentials or payment details into an unverified deployment.
+- The recovery UI and code do not establish that any bank, payment processor, or settlement integration is live.
+- Never force-push over `main`. Recover through the reviewable pull request and preserve the existing branch history.
+- Keep all provider/API secrets server-side in deployment environment variables; never commit secrets to the repository.
 
-- `netlify.toml`, Vite/PostCSS/jsconfig, `index.html`
-- `src/components/MemberRoute.jsx`, `OperationsRoute.jsx`
-- `src/components/vantoris/BottomNav.jsx`, `MemberLayout.jsx`
-- README
+## Validation
 
-**Still need the full app tree** from the working clone (`~448` files under Base44/Vantoris) for a complete production build.
-
-## Finish deploy (recommended)
-
-From a machine with the full fixed tree and GitHub write access:
-
-```bash
-# Option A — push full tree to this repo
-cd /path/to/vantoriss-fixed
-git remote add xmoney https://github.com/iamtheoracle/vantoris-x-money.git
-git push xmoney feature/x-money-member-ui:main --force
-
-# Option B — link Netlify to the repo in UI
-# Site settings → Build & deploy → Connect to Git → iamtheoracle/vantoris-x-money
-# Build command: npm run build
-# Publish directory: dist
-```
-
-Local Netlify CLI (from project root):
-
-```bash
-npm install
-npm run build
-npx netlify deploy --prod --dir=dist --site=35d1b417-d469-4745-9673-15b8cb5fdbe4
-```
-
-## Local dev
-
-```bash
-npm install
-npm run dev
-```
-
-Requires Base44 backend env/config as in the original Vantoris app.
+A GitHub Actions build workflow is included at `.github/workflows/recovery-build.yml`. Check the pull request's latest workflow run for the current build result. A successful compile alone is not a substitute for security review, integration testing, or end-to-end browser QA.
