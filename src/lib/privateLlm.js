@@ -23,7 +23,7 @@ export async function askPrivateModel(prompt) {
     return { ok: false, error: 'authentication_required', text: 'Sign in to use Vantoris Intelligence.' };
   }
 
-  const endpoints = ['/.netlify/functions/ask', '/api/ask'];
+  const endpoints = import.meta.env.DEV ? ['/api/ask'] : ['/.netlify/functions/ask'];
   for (const url of endpoints) {
     try {
       const response = await fetch(url, {
