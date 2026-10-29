@@ -124,16 +124,11 @@ export default function AgentChat({
     setMobileView(true);
   }
 
-  async function generateConversationTitle(firstMessage) {
-    try {
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Generate a very short title (3-6 words, no quotes, no trailing punctuation) for a conversation that starts with this message:\n\n"${firstMessage}"\n\nTitle:`,
-      });
-      const title = (typeof result === 'string' ? result : (result.response || result.result || '')).trim();
-      return title.slice(0, 60) || firstMessage.slice(0, 40);
-    } catch {
-      return firstMessage.length > 40 ? firstMessage.slice(0, 40) + '…' : firstMessage;
-    }
+  function generateConversationTitle(firstMessage) {
+    // Titles are local and deterministic; they do not invoke an LLM or transmit extra content.
+    const normalized = String(firstMessage || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return 'New conversation';
+    return normalized.length > 44 ? normalized.slice(0, 41).trimEnd() + '…' : normalized;
   }
 
   function deleteConversation(convId) {
