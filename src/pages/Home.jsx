@@ -38,7 +38,7 @@ function relativeDay(iso) {
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startThat = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diff = Math.round((startToday - startThat) / 86400000);
+  const diff = Math.round((startToday.getTime() - startThat.getTime()) / 86400000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   if (diff > 1 && diff < 7) return `${diff} days ago`;
