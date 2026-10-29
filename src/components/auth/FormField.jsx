@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+/** @param {{ label: string, value?: string|number, onChange: (value: string) => void, type?: string, placeholder?: string, required?: boolean, autoComplete?: string, icon?: any }} param0 */
 export function TextField({ label, value, onChange, type = "text", placeholder, required, autoComplete, icon: Icon }) {
   return (
     <div className="space-y-1.5">
@@ -25,6 +26,7 @@ export function TextField({ label, value, onChange, type = "text", placeholder, 
   );
 }
 
+/** @param {{ label: string, value?: string|number, onChange: (value: string) => void, options: Array<{value: string, label: string}>, required?: boolean, placeholder?: string }} param0 */
 export function SelectField({ label, value, onChange, options, required, placeholder = "Select..." }) {
   return (
     <div className="space-y-1.5">
@@ -45,6 +47,7 @@ export function SelectField({ label, value, onChange, options, required, placeho
   );
 }
 
+/** @param {{ label: string, description?: string, checked: boolean, onChange: (checked: boolean) => void }} param0 */
 export function ToggleField({ label, description, checked, onChange }) {
   return (
     <div className="flex items-center justify-between py-2">
