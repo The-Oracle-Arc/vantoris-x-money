@@ -103,7 +103,7 @@ export default function HistoricalStatementImport({ open, onClose, accountId, ac
       if (cols.length < 4) continue;
 
       const [dateStr, desc, typeOrAmt, amtOrType, ref] = cols;
-      let type = '', amount = '', reference = '';
+      let type = '', amount = 0, reference = '';
 
       // Flexible: could be date,desc,type,amount,ref OR date,desc,amount,type,ref
       if (isNaN(parseFloat(typeOrAmt))) {
