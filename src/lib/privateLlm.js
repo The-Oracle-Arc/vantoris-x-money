@@ -57,6 +57,7 @@ export async function askPrivateModel(prompt) {
 }
 
 export function privateLlmConfigured() {
-  // Server configuration is only authoritative after an actual request.
-  return true;
+  // Browser code cannot inspect server-only environment variables. Do not
+  // claim the provider is configured before the authenticated endpoint proves it.
+  return null;
 }
