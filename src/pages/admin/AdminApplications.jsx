@@ -9,6 +9,9 @@ import { logAuditEntry } from '@/lib/auditLogger';
 import { hasOperationsAccess } from '@/lib/operationsAccess';
 import { useToast } from '@/components/ui/use-toast';
 
+// Financial and identity mutations stay disabled until a trusted server workflow is integrated.
+const SERVER_OPERATIONS_MUTATIONS_ENABLED = false;
+
 export default function AdminApplications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,8 +83,10 @@ export default function AdminApplications() {
   }
 
   async function handleBulkApprove() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (selectedIds.length === 0) return;
     setSubmitting(true);
