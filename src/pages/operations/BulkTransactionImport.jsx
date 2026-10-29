@@ -63,7 +63,7 @@ export default function BulkTransactionImport() {
         },
       });
 
-      const output = extractRes.output || extractRes;
+      const output = /** @type {any} */ (extractRes).output || extractRes;
       const data = Array.isArray(output) ? output : (output.transactions || output.data || []);
       if (!data.length) {
         setError('No transactions found in file. Ensure your CSV has headers: account_number, type, amount, description, reference, transaction_date');
