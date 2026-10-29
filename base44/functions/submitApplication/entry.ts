@@ -22,14 +22,13 @@ export default async function(req: Request): Promise<Response> {
       phone,
       address,
       business_name,
-      kyc_status,
       kyc_documents,
-      kyc_notes,
       reason,
     } = body;
 
-    if (!account_type) {
-      return Response.json({ error: 'account_type is required' }, { status: 400 });
+    const allowedAccountTypes = new Set(['Checking', 'Savings', 'Money Market', 'CD', 'Joint', 'Business']);
+    if (typeof account_type !== 'string' || !allowedAccountTypes.has(account_type)) {
+      return Response.json({ error: 'A supported account_type is required' }, { status: 400 });
     }
 
     // Identify the caller
@@ -38,34 +37,53 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // Fetch all approved Applications for this user
-    const approvedApps: any[] = await base44.asServiceRole.entities.Application.filter({
-      user_id: me.id,
-      application_status: 'approved',
-    });
+    // Read only this member's applications through the trusted service-role client.
+    const [approvedApps, pendingApps]: [any[], any[]] = await Promise.all([
+      base44.asServiceRole.entities.Application.filter({
+        user_id: me.id,
+        application_status: 'approved',
+      }),
+      base44.asServiceRole.entities.Application.filter({
+        user_id: me.id,
+        account_type,
+      }),
+    ]);
 
     const heldTypes: string[] = approvedApps.map((a: any) => a.account_type);
+    const existingPending = pendingApps.find((a: any) =>
+      ['pending', 'in_review'].includes(a.application_status)
+    );
+    if (existingPending) {
+      return Response.json({
+        outcome: 'application_exists',
+        message: 'An application for this account type is already under review.',
+      }, { status: 409 });
+    }
 
     // --- Case 1: Zero approved accounts — allow first Application ---
     if (heldTypes.length === 0) {
-      if (!full_name || !email) {
+      const applicantName = typeof me.full_name === 'string' && me.full_name.trim()
+        ? me.full_name.trim()
+        : (typeof full_name === 'string' ? full_name.trim() : '');
+      const applicantEmail = typeof me.email === 'string' ? me.email.trim() : '';
+      if (!applicantName || !applicantEmail) {
         return Response.json(
-          { error: 'full_name and email are required to create an Application' },
+          { error: 'Complete your profile name and email before applying' },
           { status: 400 },
         );
       }
       const app = await base44.entities.Application.create({
         user_id: me.id,
-        full_name,
-        email,
+        full_name: applicantName,
+        email: applicantEmail,
         phone,
         address,
         business_name,
         account_type,
-        kyc_status: kyc_status || 'not_started',
+        // KYC state is server-controlled; client input can never self-approve.
+        kyc_status: 'not_started',
         application_status: 'pending',
-        kyc_documents,
-        kyc_notes,
+        ...(Array.isArray(kyc_documents) ? { kyc_documents } : {}),
       });
       return Response.json({ outcome: 'application_created', application: app });
     }
