@@ -5,6 +5,9 @@ import { ArrowLeft, TrendingUp, Wallet, ArrowDownToLine, ArrowUpRight, PieChart,
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/lib/formatCurrency';
 
+// Investment mutations stay disabled until an authorized provider workflow is integrated.
+const SERVER_INVESTMENT_OPERATIONS_ENABLED = false;
+
 export default function Investment() {
   const [user, setUser] = useState(null);
   const [portfolio, setPortfolio] = useState(null);
@@ -48,6 +51,8 @@ export default function Investment() {
   }, [loadData]);
 
   async function handleCreatePortfolio() {
+    if (!SERVER_INVESTMENT_OPERATIONS_ENABLED) { toast({ title: 'Investment action unavailable', description: 'Portfolio creation and investment funding requests are disabled until a trusted investment provider, ledger, and authorization workflow are connected. No investment action was submitted.', variant: 'destructive' }); return; }
+
     setSubmitting(true);
     try {
       const me = await base44.auth.me();
@@ -67,6 +72,8 @@ export default function Investment() {
   }
 
   async function handleDeposit() {
+    if (!SERVER_INVESTMENT_OPERATIONS_ENABLED) { toast({ title: 'Investment action unavailable', description: 'Portfolio creation and investment funding requests are disabled until a trusted investment provider, ledger, and authorization workflow are connected. No investment action was submitted.', variant: 'destructive' }); return; }
+
     if (!depositAmount || parseFloat(depositAmount) <= 0) return;
     setSubmitting(true);
     try {
@@ -89,6 +96,8 @@ export default function Investment() {
   }
 
   async function handleWithdraw() {
+    if (!SERVER_INVESTMENT_OPERATIONS_ENABLED) { toast({ title: 'Investment action unavailable', description: 'Portfolio creation and investment funding requests are disabled until a trusted investment provider, ledger, and authorization workflow are connected. No investment action was submitted.', variant: 'destructive' }); return; }
+
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
     setSubmitting(true);
     try {
