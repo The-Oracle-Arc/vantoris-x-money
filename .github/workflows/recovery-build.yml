@@ -26,4 +26,21 @@ jobs:
           node-version: 20
       - run: npm install --no-audit --no-fund
       - run: node --check netlify/functions/ask.mjs && node --check server/llm-proxy.mjs
+      - name: Validate entity JSON and security rules
+        run: |
+          node --input-type=module <<'NODE'
+          import { readdirSync, readFileSync } from 'node:fs';
+          const dir = 'base44/entities';
+          const files = readdirSync(dir).filter((name) => name.endsWith('.jsonc'));
+          if (!files.length) throw new Error('No entity schemas found');
+          for (const file of files) {
+            const schema = JSON.parse(readFileSync(`${dir}/${file}`, 'utf8'));
+            if (!schema.name || schema.type !== 'object') throw new Error(`Invalid entity schema: ${file}`);
+          }
+          for (const name of ['Account', 'Transaction', 'WithdrawalRequest', 'User']) {
+            const schema = JSON.parse(readFileSync(`${dir}/${name}.jsonc`, 'utf8'));
+            if (!schema.rls) throw new Error(`Missing row-level security rules: ${name}`);
+          }
+          console.log(`Validated ${files.length} entity schemas and critical RLS definitions.`);
+          NODE
       - run: npm run build
