@@ -299,7 +299,7 @@ export default function SupporterLeaderboard() {
         <div className="space-y-4">
           <div className="vantoris-card p-5">
             <div className="flex items-center gap-2 mb-4">
-              <BarChart size={16} className="text-navy" />
+              <BarChart width={16} className="text-navy" />
               <h3 className="text-foreground font-semibold text-sm">Top 10 by Volume</h3>
             </div>
             {topChart.length > 0 ? (
