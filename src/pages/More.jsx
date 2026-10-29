@@ -72,10 +72,12 @@ export default function More() {
 
   function handleItemClick(item) {
     if (item.external) {
-      window.open(
-        whatsappLinkFromConfig(whatsappNumber, 'Hello Vantoris Support, I have a question regarding my account.'),
-        '_blank', 'noopener,noreferrer'
-      );
+      const supportUrl = whatsappLinkFromConfig(whatsappNumber, 'Hello Vantoris Support, I have a question regarding my account.');
+      if (!supportUrl) {
+        navigate('/support');
+        return;
+      }
+      window.open(supportUrl, '_blank', 'noopener,noreferrer');
       return;
     }
     if (item.id === 'about') {
