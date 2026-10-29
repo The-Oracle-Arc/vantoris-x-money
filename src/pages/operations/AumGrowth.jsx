@@ -47,14 +47,14 @@ export default function AumGrowth() {
     const sorted = [...transactions].sort((a, b) => {
       const da = new Date(a.transaction_date || a.created_date);
       const db = new Date(b.transaction_date || b.created_date);
-      return da - db;
+      return da.getTime() - db.getTime();
     });
 
     let cumulative = 0;
     const points = sorted.map(t => {
-      const amt = Math.abs(t.amount || 0);
+      const amt = Math.abs(Number(t.amount) || 0);
       if (t.type === 'withdrawal') cumulative -= amt;
-      else if (t.type === 'adjustment') cumulative += (t.amount || 0);
+      else if (t.type === 'adjustment') cumulative += (Number(t.amount) || 0);
       else cumulative += amt;
 
       return {
@@ -70,11 +70,11 @@ export default function AumGrowth() {
       if (!ym) return;
       if (!monthlyFlows[ym]) monthlyFlows[ym] = { month: ym, label: formatMonthLabel(ym), inflow: 0, outflow: 0, endAum: 0, txnCount: 0 };
       monthlyFlows[ym].txnCount += 1;
-      const amt = Math.abs(t.amount || 0);
+      const amt = Math.abs(Number(t.amount) || 0);
       if (t.type === 'withdrawal') monthlyFlows[ym].outflow += amt;
       else if (t.type === 'adjustment') {
-        if ((t.amount || 0) >= 0) monthlyFlows[ym].inflow += amt;
-        else monthlyFlows[ym].outflow += Math.abs(t.amount || 0);
+        if ((Number(t.amount) || 0) >= 0) monthlyFlows[ym].inflow += amt;
+        else monthlyFlows[ym].outflow += Math.abs(Number(t.amount) || 0);
       }
       else monthlyFlows[ym].inflow += amt;
     });
@@ -96,7 +96,7 @@ export default function AumGrowth() {
       txnCount: m.txnCount,
     }));
 
-    const totalAcctAUM = accounts.reduce((s, a) => s + (a.balance || 0), 0);
+    const totalAcctAUM = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
     const currentAUMVal = monthlyArr.length > 0 ? monthlyArr[monthlyArr.length - 1].endAum : totalAcctAUM;
     const peakAUMVal = monthlyArr.reduce((max, m) => Math.max(max, m.endAum), 0);
     const totalIn = monthlyArr.reduce((s, m) => s + m.inflow, 0);
