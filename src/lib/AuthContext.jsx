@@ -4,7 +4,8 @@ import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { seedResponseTemplates } from '@/lib/seedResponseTemplates';
 
-const AuthContext = createContext();
+/** @type {React.Context<any>} */
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
