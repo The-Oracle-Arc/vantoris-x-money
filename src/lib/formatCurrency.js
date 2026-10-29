@@ -11,3 +11,8 @@ export function formatCurrency(amount) {
     maximumFractionDigits: 2,
   }).format(Number.isFinite(value) ? value : 0);
 }
+
+/** Account numbers must be issued by a trusted server-side workflow, never generated in the browser. */
+export function generateAccountNumber() {
+  throw new Error('Account numbers are issued by the trusted server-side account workflow.');
+}
