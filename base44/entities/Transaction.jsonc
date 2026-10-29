@@ -52,7 +52,7 @@
         "system"
       ],
       "default": "live",
-      "description": "Origin of the transaction \u2014 live (system-generated), historical_import (from uploaded statement), admin_entry (manual), system (automated)"
+      "description": "Origin of the transaction — live (system-generated), historical_import (from uploaded statement), admin_entry (manual), system (automated)"
     },
     "imported_statement_id": {
       "type": "string",
@@ -79,11 +79,122 @@
       ],
       "default": "",
       "description": "For transfer-type transactions: in=received, out=sent, internal=between own accounts, external=to/from another bank"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Owning member ID, populated only by trusted server-side ledger workflows"
     }
   },
   "required": [
     "account_id",
     "type",
     "amount"
-  ]
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "compliance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "executive"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "customer_support"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "kyc_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "it_administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "risk_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "herobox_manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "volunteer_manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "shipping_manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "investment_manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "investment_officer"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
 }
