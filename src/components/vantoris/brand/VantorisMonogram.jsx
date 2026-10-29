@@ -12,6 +12,9 @@ import React, { useId } from 'react';
  *
  * Treatments: flat | metallic | glass | monochrome | outline | foil | embossed
  */
+
+/** @typedef {{ size?: number, variant?: string, theme?: string, color?: string, className?: string, strokeWidth?: number }} VantorisMonogramProps */
+/** @param {VantorisMonogramProps} props */
 export const VANTORIS_COLORS = {
   navy: '#071C38',
   executiveBlue: '#0A2342',
@@ -24,6 +27,7 @@ export const VANTORIS_COLORS = {
 
 const V_PATH = 'M16,24 L32,24 L60,81 L88,24 L104,24 L60,96 Z';
 
+/** @param {VantorisMonogramProps} props */
 export default function VantorisMonogram({
   size = 48,
   variant = 'flat',
@@ -93,39 +97,13 @@ export default function VantorisMonogram({
   } else if (variant === 'outline') {
     fill = 'none';
     stroke = flatColor;
-    sw = sw || 2.5;
+    sw = sw || 2;
   }
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 120 120"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      role="img"
-      aria-label="Vantoris monogram"
-    >
+    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} role="img" aria-label="Vantoris monogram">
       <defs>{defs}</defs>
-      <g filter={variant === 'embossed' ? `url(#${sid})` : undefined}>
-        <path
-          d={V_PATH}
-          fill={fill}
-          stroke={stroke}
-          strokeWidth={sw}
-          strokeLinejoin="miter"
-        />
-        {(variant === 'metallic' || variant === 'foil') && (
-          <path
-            d="M22,26 L57,90"
-            stroke="#FFFFFF"
-            strokeOpacity="0.35"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          />
-        )}
-      </g>
+      <path d={V_PATH} fill={fill} stroke={stroke} strokeWidth={sw} />
     </svg>
   );
 }
