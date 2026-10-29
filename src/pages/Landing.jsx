@@ -312,7 +312,7 @@ export default function Landing() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-3 py-1.5 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-mono text-[11px] text-brass tracking-wide">VERIFIED · MEMBER BANKING · LIVE</span>
+                <span className="font-mono text-[11px] text-brass tracking-wide">MEMBER PLATFORM · PRODUCT PREVIEW</span>
               </div>
               <h1 className="font-heading text-white text-[2.75rem] sm:text-5xl lg:text-[3.75rem] font-extrabold leading-[1.02] tracking-tight">
                 Money that moves
@@ -380,12 +380,65 @@ export default function Landing() {
           {/* Trust marquee */}
           <div className="relative border-t border-white/10 bg-black/30 backdrop-blur-md">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between gap-4 font-mono text-[10px] sm:text-[11px] text-white/45 uppercase tracking-[0.14em]">
-              <span>Statements · boardroom grade</span>
-              <span>Wires · trackable</span>
-              <span>Cards · U.S. layout standard</span>
+              <span>Statements · member tools</span>
+              <span>Transfers · dedicated tools</span>
+              <span>Cards · product preview</span>
               <span>AI · member + ops</span>
-              <span>HeroBox · real logistics</span>
+              <span>HeroBox · impact tools</span>
             </div>
+          </div>
+        </section>
+
+
+
+        {/* Platform directory — quick entry points without removing detailed sections below. */}
+        <section id="explore-platform" className="border-b border-slate-200 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 sm:py-16">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">One platform, clear paths</p>
+                <h2 className="mt-2 font-heading text-2xl sm:text-3xl font-bold tracking-tight text-navy">Explore Vantoris</h2>
+                <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed text-slate-600">
+                  Start with what you need. Every area below has its own dedicated experience, and the full feature tour continues further down this page.
+                </p>
+              </div>
+              <Link to="/more" className="inline-flex items-center gap-2 self-start sm:self-auto text-sm font-semibold text-navy hover:text-amber-700">
+                Browse all services <ArrowRight size={16} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {[
+                { title: 'Banking & accounts', detail: 'Accounts, balances, cards and statements', icon: Landmark, to: '/accounts' },
+                { title: 'Transfers & payments', detail: 'Move money and review transactions', icon: Wallet, to: '/move-money' },
+                { title: 'Markets & investing', detail: 'Market discovery and investment tools', icon: TrendingUp, to: '/investment' },
+                { title: 'Flights & travel', detail: 'Flight discovery and travel services', icon: Plane, to: '/discover/flights' },
+                { title: 'Foreign exchange', detail: 'Explore FX information and rates', icon: Globe2, to: '/discover/fx' },
+                { title: 'Property', detail: 'Explore housing and property discovery', icon: Building2, to: '/discover/housing' },
+                { title: 'News & discovery', detail: 'Browse news and platform discovery', icon: BookOpen, to: '/discover/news' },
+                { title: 'AI & assistance', detail: 'Get guidance and find support', icon: Sparkles, to: '/assistant' },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.title}
+                    to={item.to}
+                    className="group min-h-[148px] rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-white hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white">
+                        <Icon size={19} aria-hidden="true" />
+                      </span>
+                      <ArrowRight size={16} className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-amber-700" aria-hidden="true" />
+                    </div>
+                    <h3 className="mt-4 text-sm sm:text-base font-bold text-navy">{item.title}</h3>
+                    <p className="mt-1 text-xs sm:text-sm leading-relaxed text-slate-600">{item.detail}</p>
+                  </Link>
+                );
+              })}
+            </div>
+            <p className="mt-5 text-xs leading-relaxed text-slate-500">
+              Availability varies by feature, account eligibility and provider integration. Market, flight and FX information may be informational; this directory does not imply that a transaction or booking is live.
+            </p>
           </div>
         </section>
 
