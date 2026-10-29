@@ -37,11 +37,31 @@ jobs:
             const schema = JSON.parse(readFileSync(`${dir}/${file}`, 'utf8'));
             if (!schema.name || schema.type !== 'object') throw new Error(`Invalid entity schema: ${file}`);
           }
-          for (const name of ['Account', 'Transaction', 'WithdrawalRequest', 'Notification', 'User']) {
-            const schema = JSON.parse(readFileSync(`${dir}/${name}.jsonc`, 'utf8'));
-            if (!schema.rls) throw new Error(`Missing row-level security rules: ${name}`);
+          const schemas = Object.fromEntries(
+            ['Account', 'Transaction', 'WithdrawalRequest', 'Notification', 'User'].map((name) => {
+              const schema = JSON.parse(readFileSync(`${dir}/${name}.jsonc`, 'utf8'));
+              if (!schema.rls) throw new Error(`Missing row-level security rules: ${name}`);
+              return [name, schema];
+            })
+          );
+          for (const name of ['Account', 'Transaction', 'WithdrawalRequest']) {
+            const rls = schemas[name].rls;
+            for (const action of ['create', 'update', 'delete']) {
+              if (rls[action] !== false) {
+                throw new Error(`${name}.${action} must remain denied until a trusted server workflow exists`);
+              }
+            }
           }
-          console.log(`Validated ${files.length} entity schemas and critical RLS definitions.`);
+          for (const action of ['create', 'read', 'update', 'delete']) {
+            const rule = schemas.Notification.rls[action];
+            if (!rule || rule['data.user_id'] !== '{{user.id}}') {
+              throw new Error(`Notification.${action} must be scoped to the signed-in owner`);
+            }
+          }
+          if (!schemas.Transaction.rls.read || !schemas.Account.rls.read) {
+            throw new Error('Account and Transaction read policies must remain explicitly defined');
+          }
+          console.log(`Validated ${files.length} entity schemas, denied client financial writes, and owner-scoped notification access.`);
           NODE
       - run: npm run lint
       - run: npm run typecheck
