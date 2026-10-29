@@ -17,6 +17,7 @@ const PALETTE = [
 
 const VARIANTS = ['flat', 'metallic', 'glass', 'monochrome', 'outline', 'foil', 'embossed'];
 
+/** @param {{ title: string, subtitle: string, dark?: boolean, children?: import('react').ReactNode }} param0 */
 function Section({ title, subtitle, dark, children }) {
   return (
     <section className={`rounded-3xl p-6 sm:p-10 ${dark ? 'bg-[#071A2D]' : 'bg-white border border-slate-200'}`}>
@@ -31,6 +32,7 @@ function Section({ title, subtitle, dark, children }) {
   );
 }
 
+/** @param {{ children?: import('react').ReactNode, className?: string, dark?: boolean }} param0 */
 function Card({ children, className = '', dark }) {
   return (
     <div className={`rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all ${dark ? 'bg-white/[0.04] border border-white/10' : 'bg-slate-50 border border-slate-200'} ${className}`}>
