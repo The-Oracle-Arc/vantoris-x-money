@@ -88,9 +88,10 @@ jobs:
           TASK_TITLE: ${ inputs.task }
         run: |
           set -euo pipefail
-          if git diff --quiet && git diff --cached --quiet; then
+          rm -f .agent-task-prompt.md .agent-final-report.md
+          if [ -z "$(git status --porcelain)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Codex made no tracked changes; no pull request created."
+            echo "Codex made no repository changes; no pull request created."
             exit 0
           fi
           branch="agent/task-$RUN_ID-$RUN_ATTEMPT"
