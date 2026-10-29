@@ -27,6 +27,9 @@ import TransactionFilters from '@/components/TransactionFilters';
 import MonthlySummary from '@/components/vantoris/home/MonthlySummary';
 import { getEffectiveTxnDate, formatTxnDate, getWeekday, formatPeriod } from '@/lib/statementDates';
 
+// Financial mutations stay disabled until trusted server-side workflows are integrated.
+const SERVER_MONEY_OPERATIONS_ENABLED = false;
+
 const WITHDRAWAL_METHODS = [
   { value: 'ACH Transfer', title: 'ACH Transfer', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
   { value: 'Domestic Wire', title: 'Domestic Wire', speed: 'Provider-dependent', time: 'Timing not verified', fee: 'Quote required', limit: 'Limit not verified', availability: 'Requires a connected, authorized payments provider' },
@@ -109,6 +112,8 @@ export default function AccountDetail() {
   }
 
   async function handlePinVerified() {
+    if (!SERVER_MONEY_OPERATIONS_ENABLED) { toast({ title: 'Withdrawal unavailable', description: 'Withdrawals require a trusted server-side PIN verifier and authorized payments provider. No request was submitted.', variant: 'destructive' }); return; }
+
     setShowPin(false);
     const formData = { ...wForm };
     const amount = parseFloat(formData.amount);
@@ -456,6 +461,7 @@ export default function AccountDetail() {
         <div className="grid grid-cols-2 gap-3 mb-6">
           <button
             onClick={async () => {
+              if (!SERVER_MONEY_OPERATIONS_ENABLED) { toast({ title: 'Account control unavailable', description: 'Freeze and unfreeze controls require a trusted server-side issuer or account-control workflow. No account status changed.', variant: 'destructive' }); return; }
               await base44.entities.Account.update(id, { status: account.status === 'frozen' ? 'active' : 'frozen' });
               loadData();
             }}
