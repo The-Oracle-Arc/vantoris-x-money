@@ -70,6 +70,7 @@ const DialogFooter = ({
 )
 DialogFooter.displayName = "DialogFooter"
 
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title> & React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Title>>>} */
 const DialogTitle = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>} param0 @param {React.ForwardedRef<React.ElementRef<typeof DialogPrimitive.Title>>} ref */ ({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
