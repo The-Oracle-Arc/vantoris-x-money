@@ -18,6 +18,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 
 /** @param {{ variant?: 'primary'|'gold'|'outline'|'ghost'|'destructive'|'secondary'|'link', size?: 'default'|'sm'|'lg'|'icon', className?: string, children?: import('react').ReactNode, [key: string]: any }} param0 */
 export default function VantorisButton({ variant = 'primary', size = 'default', className, children, ...props }) {
+  /** @type {Record<string, 'default'|'gold'|'outline'|'ghost'|'destructive'|'secondary'|'link'>} */
   const variantMap = {
     primary: 'default',
     gold: 'gold',
