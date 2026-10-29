@@ -54,9 +54,9 @@ export default function AdminWithdrawals() {
 
   async function loadData() {
     const [wds, accts, lmts] = await Promise.all([
-      base44.entities.WithdrawalRequest.list('-created_date', 200),
-      base44.entities.Account.list('-created_date', 200),
-      base44.entities.WithdrawalLimit.list('-created_date', 10),
+      base44.entities.WithdrawalRequest.filter({}, '-created_date', 200),
+      base44.entities.Account.filter({}, '-created_date', 200),
+      base44.entities.WithdrawalLimit.filter({}, '-created_date', 10),
     ]);
     setWithdrawals(wds);
     setAccounts(accts);
