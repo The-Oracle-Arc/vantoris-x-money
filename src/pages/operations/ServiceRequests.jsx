@@ -26,9 +26,9 @@ export default function ServiceRequests() {
   async function loadData() {
     try {
       const [reqs, usrs, tmpls] = await Promise.all([
-        base44.entities.ServiceRequest.list('-created_date', 100),
-        base44.entities.User.list('-created_date', 100),
-        base44.entities.ServiceTemplate.list('-created_date', 100),
+        base44.entities.ServiceRequest.filter({}, '-created_date', 100),
+        base44.entities.User.filter({}, '-created_date', 100),
+        base44.entities.ServiceTemplate.filter({}, '-created_date', 100),
       ]);
       setRequests(reqs);
       setUsers(usrs);
