@@ -1,7 +1,7 @@
 import React from 'react';
 
 /** Compact Vantoris shield mark used across the public landing page. */
-export default function ShieldLogo({ size = 40, className = '', variant = 'metallic', theme }) {
+export default function ShieldLogo({ size = 40, className = '', variant = 'metallic', theme = 'light' }) {
   const dark = theme === 'dark';
   const gold = variant === 'metallic' || variant === 'gold';
   return (
