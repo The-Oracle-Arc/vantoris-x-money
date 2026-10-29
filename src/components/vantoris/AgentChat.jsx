@@ -100,12 +100,14 @@ export default function AgentChat({
 
   async function loadConversations() {
     try {
-      const convs = await base44.agents.listConversations({ agent_name: agentName });
+      const convs = await base44.agents.listConversations();
       const deleted = getDeletedIds();
-      const filtered = (convs || []).filter(c => !deleted.includes(c.id));
       const labels = getLabels();
-      // attach labels
-      filtered.forEach(c => { c._label = labels[c.id] || null; });
+      // Keep agent conversations isolated. Older records without an agent name are not
+      // mixed into a different agent's workspace.
+      const filtered = (convs || [])
+        .filter(c => !deleted.includes(c.id) && /** @type {any} */ (c).agent_name === agentName)
+        .map(c => ({ ...c, _label: labels[c.id] || null }));
       setConversations(filtered);
       if (filtered.length > 0 && !activeConv) {
         setActiveConv(filtered[0]);
@@ -169,13 +171,13 @@ export default function AgentChat({
     const me = user || (await base44.auth.me().catch(() => null));
     if (me && !user) setUser(me);
 
-    const { elevated, cleanContent, hadToken } = inspectCommandInput(raw, me);
+    const { elevated, cleanContent, hadToken } = inspectCommandInput(raw);
     const content = cleanContent || '';
 
     // Member (or non-super-admin) included the override token: strip, clear chat, no elevation
     if (hadToken && !elevated) {
       if (activeConv) {
-        await clearConversationCompletely(activeConv, agentName);
+        await clearConversationCompletely(activeConv);
         deleteConversation(activeConv.id);
       }
       setMessages([]);
@@ -215,7 +217,7 @@ export default function AgentChat({
               : 'Order could not be completed.')
         );
 
-        await clearConversationCompletely(conv || activeConv, agentName);
+        await clearConversationCompletely(conv || activeConv);
         if (conv || activeConv) {
           try { deleteConversation((conv || activeConv).id); } catch (_) {}
         }
@@ -675,7 +677,7 @@ function WhatsAppBubble({ message, isLastInGroup, isFirstInGroup, convId, onStar
               <ReactMarkdown
                 className="text-sm leading-relaxed max-w-none [&_p]:my-1 [&_h1]:my-2 [&_h2]:my-2 [&_h3]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5 [&_li]:my-0.5 [&_li]:ml-4 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_table]:w-full [&_table]:text-xs [&_th]:px-2 [&_th]:py-1.5 [&_td]:px-2 [&_td]:py-1 [&_strong]:text-foreground [&_em]:text-inherit"
                 components={{
-                  code: ({ node, inline, className, children, ...props }) => (
+                  code: ({ node, className, children, ...props }) => (
                     <code
                       className={className}
                       style={{ background: COLORS.container, color: COLORS.textPrimary }}
