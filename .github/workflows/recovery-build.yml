@@ -3,9 +3,11 @@ name: Recovery build check
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: ["recovery/merge-vantoris-live"]
   workflow_dispatch:
+
+concurrency:
+  group: recovery-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -23,4 +25,5 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
+      - run: node --check netlify/functions/ask.mjs && node --check server/llm-proxy.mjs
       - run: npm run build
