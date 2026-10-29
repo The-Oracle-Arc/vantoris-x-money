@@ -5,7 +5,11 @@ export function exportToCsv(filename, headers = [], rows = []) {
     const text = value == null ? '' : String(value);
     return '"' + text.replace(/"/g, '""') + '"';
   };
-  const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\r\n');
+  const normalizedHeaders = Array.isArray(headers) ? headers : [];
+  const matrix = rows.map((row) => Array.isArray(row)
+    ? row
+    : normalizedHeaders.map((header) => row && typeof row === 'object' ? row[header] : ''));
+  const csv = [normalizedHeaders, ...matrix].map((row) => row.map(escape).join(',')).join('\r\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
