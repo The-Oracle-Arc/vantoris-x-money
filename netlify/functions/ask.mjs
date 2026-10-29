@@ -1,14 +1,44 @@
+import { createClient } from '@base44/sdk';
+
 /**
- * Private AI proxy. Never reports a canned/local response as a model-generated answer.
- * Provider credentials stay on the server. Configure PRIVATE_LLM_URL to enable the model.
+ * Authenticated private AI proxy. Provider credentials stay server-side.
+ * A valid Base44 member session is required before any upstream model request.
  */
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  headers: {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+  },
 });
+
+function getBearerToken(request) {
+  const header = request.headers.get('authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || '';
+}
+
+async function verifyMemberSession(token) {
+  const appId = process.env.BASE44_APP_ID || process.env.VITE_BASE44_APP_ID || '6a3d85c1632966fefe16f3d4';
+  const serverUrl = process.env.BASE44_SERVER_URL || process.env.VITE_BASE44_SERVER_URL || 'https://vantoris.base44.app';
+  const client = createClient({ appId, token, serverUrl, requiresAuth: true });
+  const user = await client.auth.me();
+  return Boolean(user?.id);
+}
 
 export default async function handler(request) {
   if (request.method !== 'POST') return json({ error: 'method_not_allowed', message: 'Use POST.' }, 405);
+
+  const token = getBearerToken(request);
+  if (!token) return json({ error: 'authentication_required', message: 'Sign in to use Vantoris Intelligence.' }, 401);
+
+  try {
+    const authenticated = await verifyMemberSession(token);
+    if (!authenticated) return json({ error: 'authentication_required', message: 'Sign in to use Vantoris Intelligence.' }, 401);
+  } catch {
+    return json({ error: 'authentication_required', message: 'Your session could not be verified. Sign in again and retry.' }, 401);
+  }
 
   let body;
   try { body = await request.json(); }
