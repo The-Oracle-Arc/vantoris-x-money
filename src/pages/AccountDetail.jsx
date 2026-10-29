@@ -114,10 +114,10 @@ export default function AccountDetail() {
       filtered = filtered.filter(t => t.type === category);
     }
     if (amountMin !== '' && amountMin != null) {
-      filtered = filtered.filter(t => Math.abs(t.amount) >= parseFloat(amountMin));
+      filtered = filtered.filter(t => Math.abs(Number(t.amount) || 0) >= parseFloat(amountMin));
     }
     if (amountMax !== '' && amountMax != null) {
-      filtered = filtered.filter(t => Math.abs(t.amount) <= parseFloat(amountMax));
+      filtered = filtered.filter(t => Math.abs(Number(t.amount) || 0) <= parseFloat(amountMax));
     }
     setFilteredTransactions(filtered);
   }
@@ -140,7 +140,7 @@ export default function AccountDetail() {
       // Use getEffectiveTxnDate — respects transaction_date, then posting_date, then created_date
       // NEVER substitutes today's date for historical dates
       const allTxns = [...transactions].sort((a, b) =>
-        new Date(getEffectiveTxnDate(a)) - new Date(getEffectiveTxnDate(b))
+        new Date(getEffectiveTxnDate(a)).getTime() - new Date(getEffectiveTxnDate(b)).getTime()
       );
 
       const filtered = allTxns.filter(t => {
@@ -157,16 +157,16 @@ export default function AccountDetail() {
             return !isNaN(d.getTime()) && d < new Date(stmtRange.from);
           })
         : [];
-      const openingBalance = beforeRange.reduce((sum, t) => sum + (t.amount || 0), 0);
+      const openingBalance = beforeRange.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
       const closingBalance = filtered.length > 0
         ? (filtered[filtered.length - 1].balance_after != null
           ? filtered[filtered.length - 1].balance_after
-          : openingBalance + filtered.reduce((sum, t) => sum + (t.amount || 0), 0))
+          : openingBalance + filtered.reduce((sum, t) => sum + (Number(t.amount) || 0), 0))
         : account.balance;
 
-      const credits = filtered.filter(t => (t.amount || 0) >= 0).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-      const debits = filtered.filter(t => (t.amount || 0) < 0).reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+      const credits = filtered.filter(t => (Number(t.amount) || 0) >= 0).reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+      const debits = filtered.filter(t => (Number(t.amount) || 0) < 0).reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
 
       const now = new Date();
       const refDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
