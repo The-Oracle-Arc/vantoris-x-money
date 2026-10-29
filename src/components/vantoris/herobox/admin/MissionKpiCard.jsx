@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export default function MissionKpiCard({ label = 'Metric', value = '—', icon: Icon, accent = 'brass', sublabel, onClick }) {
+export default function MissionKpiCard({ label = 'Metric', value = '—', icon: Icon = null, accent = 'brass', sublabel = null, onClick = null }) {
   const accents = {
     brass: 'bg-brass/10 border-brass/20 text-brass',
     mint: 'bg-mint/10 border-mint/20 text-mint',
