@@ -1,5 +1,6 @@
 import React from 'react';
 
+/** @param {{ icon?: any, title: string, right?: import('react').ReactNode }} param0 */
 export default function SectionTitle({ icon: Icon, title, right = null }) {
   return (
     <div className="flex items-center justify-between mb-2.5 px-1">
