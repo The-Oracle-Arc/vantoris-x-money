@@ -23,7 +23,16 @@ export default function ProfileSection({ title, icon: Icon, children, delay = 0 
   );
 }
 
-export function ProfileRow({ icon: Icon, iconColor = 'text-brass', iconBg = 'bg-brass/10', label, value, onClick, rightElement, danger }) {
+export function ProfileRow({
+  icon: Icon,
+  iconColor = 'text-brass',
+  iconBg = 'bg-brass/10',
+  label,
+  value = null,
+  onClick,
+  rightElement = null,
+  danger = false,
+}) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
