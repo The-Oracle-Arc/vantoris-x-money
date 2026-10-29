@@ -156,8 +156,10 @@ export default function AdminWithdrawals() {
   }
 
   async function rejectOne(wd, notes) {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     await base44.entities.WithdrawalRequest.update(wd.id, { status: 'rejected', admin_notes: notes });
     await base44.entities.Notification.create({
@@ -174,8 +176,10 @@ export default function AdminWithdrawals() {
   }
 
   async function handlePay() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (!selected) return;
     setSubmitting(true);
@@ -190,8 +194,10 @@ export default function AdminWithdrawals() {
   }
 
   async function handleReject() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (!selected) return;
     setSubmitting(true);
@@ -206,8 +212,10 @@ export default function AdminWithdrawals() {
   }
 
   async function executeBulkAction() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (!bulkAction || selectedIds.length === 0) return;
     setSubmitting(true);
