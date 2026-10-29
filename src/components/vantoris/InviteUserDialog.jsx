@@ -2,7 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ShieldAlert } from 'lucide-react';
 
-export default function InviteUserDialog({ open, onOpenChange }) {
+export default function InviteUserDialog({ open, onOpenChange, onInvited = null }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
