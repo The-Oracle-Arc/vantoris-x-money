@@ -34,7 +34,7 @@ export default function AdminAccounts() {
   useEffect(() => { loadAccounts(); }, []);
 
   async function loadAccounts() {
-    const accts = await base44.entities.Account.list('-created_date', 50);
+    const accts = await base44.entities.Account.filter({}, '-created_date', 50);
     setAccounts(accts);
     setLoading(false);
   }
