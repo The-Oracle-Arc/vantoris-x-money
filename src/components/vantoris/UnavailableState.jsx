@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-export default function UnavailableState({ title, detail, action }) {
+export default function UnavailableState({ title, detail, action = null }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-brass">Not connected</p>
