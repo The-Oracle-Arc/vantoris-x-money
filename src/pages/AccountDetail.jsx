@@ -130,41 +130,6 @@ export default function AccountDetail() {
     setTimeout(() => setCopiedField(''), 2000);
   }
 
-  async function handlePinVerified() {
-    if (!SERVER_MONEY_OPERATIONS_ENABLED) { toast({ title: 'Withdrawal unavailable', description: 'Withdrawals require a trusted server-side PIN verifier and authorized payments provider. No request was submitted.', variant: 'destructive' }); return; }
-
-    setShowPin(false);
-    const formData = { ...wForm };
-    const amount = parseFloat(formData.amount);
-    setShowWithdraw(false);
-    setWStep(1);
-    setWForm({ amount: '', method: 'ACH Transfer', notes: '' });
-
-    const pendingToast = toast({ title: 'Submitting withdrawal...', description: `${formatCurrency(amount)} via ${formData.method}` });
-
-    try {
-      const user = currentUser || await base44.auth.me();
-      await base44.entities.WithdrawalRequest.create({
-        account_id: id,
-        user_id: user.id,
-        amount: amount,
-        method: formData.method,
-        notes: formData.notes,
-        status: 'pending',
-      });
-      await base44.entities.Notification.create({
-        user_id: user.id,
-        title: 'Withdrawal Requested',
-        message: `Your withdrawal request of ${formatCurrency(amount)} is pending review.`,
-        type: 'info',
-      });
-      pendingToast.update({ title: 'Withdrawal submitted', description: `${formatCurrency(amount)} is pending review.` });
-    } catch (e) {
-      console.error(e);
-      pendingToast.update({ title: 'Withdrawal failed', description: 'Please try again.', variant: 'destructive' });
-    }
-  }
-
   async function generateStatement() {
     setGeneratingPdf(true);
     try {
