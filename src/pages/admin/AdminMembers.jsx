@@ -3,10 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { formatCurrency } from '@/lib/formatCurrency';
 import { Users, Search, Plus, Wallet, Download, StickyNote, UserPlus, Trash2, History } from 'lucide-react';
 import MemberActivityFeed from '@/components/vantoris/MemberActivityFeed';
-import { generateAccountNumber } from '@/lib/formatCurrency';
 import { logAuditEntry } from '@/lib/auditLogger';
 import { exportToCsv } from '@/lib/exportCsv';
-import { sendTransactionEmail } from '@/lib/transactionEmails';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -48,29 +46,11 @@ export default function AdminMembers() {
 
   async function handleDeleteMember() {
     if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      // Delete member's accounts and transactions first
-      const memberAccts = accounts.filter(a => a.user_id === deleteTarget.id);
-      for (const acct of memberAccts) {
-        await base44.entities.Transaction.deleteMany({ account_id: acct.id });
-        await base44.entities.Account.delete(acct.id);
-      }
-      await base44.entities.User.delete(deleteTarget.id);
-      await logAuditEntry({
-        action_type: 'account_deleted',
-        description: `Deleted member ${deleteTarget.full_name} (${deleteTarget.email})`,
-        details: `Email: ${deleteTarget.email} | All accounts, transactions, and associated data permanently removed`,
-        target_user_id: deleteTarget.id,
-      });
-      setDeleteTarget(null);
-      loadData();
-      toast({ title: 'Member deleted', description: `${deleteTarget.full_name} and all associated data have been removed.` });
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Delete failed', description: e.message || 'Unable to delete member.', variant: 'destructive' });
-    }
-    setDeleting(false);
+    toast({
+      title: 'Member deletion unavailable',
+      description: 'Permanent member deletion requires a trusted server-side workflow with authorization, cascade handling, and audit logging. No records were deleted.',
+      variant: 'destructive',
+    });
   }
 
   if (loading) {
@@ -81,67 +61,17 @@ export default function AdminMembers() {
 
   async function handleCreateAccount() {
     if (!showCreate) return;
-    setCreating(true);
-    try {
-      const acctNum = generateAccountNumber();
-      const balance = parseFloat(acctForm.opening_balance) || 0;
-      const account = await base44.entities.Account.create({
-        user_id: showCreate.id,
-        account_number: acctNum,
-        account_type: acctForm.account_type,
-        account_name: acctForm.account_name || `${showCreate.full_name} - ${acctForm.account_type}`,
-        balance: balance,
-        status: 'active',
-      });
-      if (balance > 0) {
-        await base44.entities.Transaction.create({
-          account_id: account.id,
-          type: 'opening_balance',
-          amount: balance,
-          description: 'Opening Balance',
-          balance_after: balance,
-          created_by_admin: true,
-        });
-        await sendTransactionEmail({
-          user_id: showCreate.id,
-          account,
-          type: 'opening_balance',
-          amount: balance,
-          description: 'Opening Balance',
-          newBalance: balance,
-        });
-      }
-      await base44.entities.Notification.create({
-        user_id: showCreate.id,
-        title: 'New Account Created',
-        message: `A ${acctForm.account_type} account has been created for you. Account: ${acctNum}`,
-        type: 'success',
-      });
-      await logAuditEntry({
-        action_type: 'account_created',
-        description: `Created ${acctForm.account_type} account ${acctNum} for ${showCreate.full_name}`,
-        details: `Opening balance: ${formatCurrency(balance)}`,
-        account_id: account.id,
-        amount: balance,
-        balance_before: 0,
-        balance_after: balance,
-        target_user_id: showCreate.id,
-      });
-      setShowCreate(null);
-      setAcctForm({ account_type: 'Personal', account_name: '', opening_balance: '' });
-      loadData();
-      toast({ title: 'Account created', description: `${acctForm.account_type} account created for ${showCreate.full_name}.` });
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Create failed', description: e.message || 'Unable to create account.', variant: 'destructive' });
-    }
-    setCreating(false);
+    toast({
+      title: 'Account creation unavailable',
+      description: 'Account issuance and opening balances require a trusted server-side workflow with ledger validation and audit logging. No account or balance was created.',
+      variant: 'destructive',
+    });
   }
 
   function handleExportMembers() {
     const headers = ['Member Name', 'Email', 'Account Type', 'Account Number', 'Account Name', 'Balance', 'Status', 'Joined'];
     const rows = [];
-    for (const member of members) {
+    for (const member of users) {
       const memberAccts = accounts.filter(a => a.user_id === member.id);
       if (memberAccts.length === 0) {
         rows.push({
