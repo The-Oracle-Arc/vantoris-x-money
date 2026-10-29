@@ -413,14 +413,10 @@ export default function AccountDetail() {
               <span className="text-gray text-[11px] font-mono">••••{(account.account_number || '').slice(-4)}</span>
               {copiedField === 'acct' ? <Check size={11} className="text-mint" /> : <Copy size={11} className="text-gray/40" />}
             </button>
-            <button
-              onClick={() => copyToClipboard('021000021', 'rout')}
-              className="flex items-center gap-2 text-left"
-            >
+            <div className="flex items-center gap-2 text-left">
               <span className="text-gray/60 text-[11px]">Routing</span>
-              <span className="text-gray text-[11px] font-mono">021000021</span>
-              {copiedField === 'rout' ? <Check size={11} className="text-mint" /> : <Copy size={11} className="text-gray/40" />}
-            </button>
+              <span className="text-gray/50 text-[11px]">Unavailable until a banking partner issues verified details</span>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
