@@ -22,7 +22,7 @@ export default function ActivityTimeline() {
           ...withdrawals.map(w => ({ id: `wd-${w.id}`, type: 'Withdrawal', label: w.method, detail: `$${w.amount}`, date: w.created_date, icon: ArrowDownToLine })),
           ...accounts.map(a => ({ id: `acct-${a.id}`, type: 'Account', label: a.account_name, detail: a.account_type, date: a.created_date, icon: Wallet })),
           ...transactions.map(t => ({ id: `txn-${t.id}`, type: 'Transaction', label: t.description || t.type, detail: t.type, date: t.created_date, icon: Activity })),
-        ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 30);
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 30);
 
         setItems(timeline);
       } catch (e) { console.error(e); }
