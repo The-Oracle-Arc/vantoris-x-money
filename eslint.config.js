@@ -32,6 +32,7 @@ export default [
     },
     settings: { react: { version: 'detect' } },
     rules: {
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'warn',
       'unused-imports/no-unused-vars': ['warn', {
