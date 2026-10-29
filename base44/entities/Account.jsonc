@@ -1,0 +1,51 @@
+{
+  "name": "Account",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "account_number": {
+      "type": "string"
+    },
+    "routing_number": {
+      "type": "string",
+      "description": "US ABA routing number (9 digits)"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "Checking",
+        "Savings",
+        "Money Market",
+        "CD",
+        "Joint",
+        "Business"
+      ]
+    },
+    "account_name": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "frozen",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "application_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "account_type",
+    "account_name"
+  ]
+}
