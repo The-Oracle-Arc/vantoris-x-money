@@ -43,4 +43,6 @@ jobs:
           }
           console.log(`Validated ${files.length} entity schemas and critical RLS definitions.`);
           NODE
+      - run: npm run lint
+      - run: npm run typecheck
       - run: npm run build
