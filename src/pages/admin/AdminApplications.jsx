@@ -139,8 +139,10 @@ export default function AdminApplications() {
   }
 
   async function handleBulkReject() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (selectedIds.length === 0) return;
     setSubmitting(true);
@@ -171,8 +173,10 @@ export default function AdminApplications() {
   }
 
   async function handleApprove() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (!selected) return;
     setSubmitting(true);
@@ -251,8 +255,10 @@ export default function AdminApplications() {
   }
 
   async function handleReject() {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     if (!selected) return;
     setSubmitting(true);
