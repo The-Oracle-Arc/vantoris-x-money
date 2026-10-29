@@ -368,7 +368,7 @@ export default function RecommendationReview() {
   );
 }
 
-function DetailField({ label, content, icon: Icon, iconClass }) {
+function DetailField({ label, content, icon: Icon = null, iconClass = '' }) {
   return (
     <div>
       <p className="text-[10px] uppercase tracking-wider text-gray font-semibold mb-1 flex items-center gap-1">
