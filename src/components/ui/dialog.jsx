@@ -14,6 +14,7 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay> & React.RefAttributes<React.ElementRef<typeof DialogPrimitive.Overlay>>>} */
 const DialogOverlay = React.forwardRef(/** @param {React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>} param0 @param {React.ForwardedRef<React.ElementRef<typeof DialogPrimitive.Overlay>>} ref */ ({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
