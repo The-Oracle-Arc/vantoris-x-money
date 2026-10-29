@@ -14,7 +14,18 @@ const ACCENTS = {
 };
 
 /** Reusable premium KPI card for member and operations dashboards. */
-export default function PremiumStatCard({ label, value, sublabel, icon: Icon, accent = 'navy', alert, alertIcon: AlertIcon, onClick, hero, className = '' }) {
+export default function PremiumStatCard({
+  label,
+  value,
+  sublabel = null,
+  icon: Icon,
+  accent = 'navy',
+  alert = null,
+  alertIcon: AlertIcon,
+  onClick,
+  hero = false,
+  className = '',
+}) {
   const style = ACCENTS[accent] || ACCENTS.navy;
   const Tag = onClick ? motion.button : motion.div;
   return (
