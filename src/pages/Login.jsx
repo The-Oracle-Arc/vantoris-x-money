@@ -44,7 +44,7 @@ export default function Login() {
       else localStorage.removeItem("vantoris_user_id");
 
       const result = await base44.auth.loginViaEmailPassword(userId.trim(), password);
-      const token = result?.access_token || result?.token || result?.accessToken;
+      const token = result?.access_token;
       if (!token) {
         setError("Sign-in succeeded but no session was created. Please try again.");
         return;
