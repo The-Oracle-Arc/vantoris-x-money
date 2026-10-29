@@ -37,7 +37,7 @@ const buttonVariants = cva(
 )
 
 /** @type {React.ForwardRefExoticComponent<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default'|'gold'|'destructive'|'outline'|'secondary'|'ghost'|'link', size?: 'default'|'sm'|'lg'|'icon', asChild?: boolean } & React.RefAttributes<HTMLButtonElement>>} */
-const Button = React.forwardRef(/** @param {React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default'|'gold'|'destructive'|'outline'|'secondary'|'ghost'|'link', size?: 'default'|'sm'|'lg'|'icon', asChild?: boolean }} param0 @param {React.ForwardedRef<HTMLButtonElement>} ref */ ({ className, variant, size, asChild = false, ...props }, ref) => {
+const Button = React.forwardRef(/** @type {React.ForwardRefRenderFunction<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default'|'gold'|'destructive'|'outline'|'secondary'|'ghost'|'link', size?: 'default'|'sm'|'lg'|'icon', asChild?: boolean }>} */ (({ className, variant, size, asChild = false, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
   return (
     (<Comp
@@ -45,7 +45,7 @@ const Button = React.forwardRef(/** @param {React.ButtonHTMLAttributes<HTMLButto
       ref={ref}
       {...props} />)
   );
-})
+}))
 Button.displayName = "Button"
 
 export { Button, buttonVariants }
