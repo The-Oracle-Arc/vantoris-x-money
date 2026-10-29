@@ -14,6 +14,7 @@ const SelectGroup = SelectPrimitive.Group
 const SelectValue = SelectPrimitive.Value
 
 /** @param {React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>} param0 @param {React.ForwardedRef<React.ElementRef<typeof SelectPrimitive.Trigger>>} ref */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & React.RefAttributes<React.ElementRef<typeof SelectPrimitive.Trigger>>>} */
 const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
@@ -31,6 +32,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
 /** @param {React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>} param0 @param {React.ForwardedRef<React.ElementRef<typeof SelectPrimitive.ScrollUpButton>>} ref */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton> & React.RefAttributes<React.ElementRef<typeof SelectPrimitive.ScrollUpButton>>>} */
 const SelectScrollUpButton = React.forwardRef(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollUpButton
     ref={ref}
@@ -42,6 +44,7 @@ const SelectScrollUpButton = React.forwardRef(({ className, ...props }, ref) => 
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
 
 /** @param {React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>} param0 @param {React.ForwardedRef<React.ElementRef<typeof SelectPrimitive.ScrollDownButton>>} ref */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton> & React.RefAttributes<React.ElementRef<typeof SelectPrimitive.ScrollDownButton>>>} */
 const SelectScrollDownButton = React.forwardRef(({ className, ...props }, ref) => (
   <SelectPrimitive.ScrollDownButton
     ref={ref}
@@ -54,6 +57,7 @@ SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName
 
 /** @param {React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & { position?: 'item-aligned'|'popper' }} param0 @param {React.ForwardedRef<React.ElementRef<typeof SelectPrimitive.Content>>} ref */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & React.RefAttributes<React.ElementRef<typeof SelectPrimitive.Content>>>} */
 const SelectContent = React.forwardRef(({ className, children, position = "popper", ...props }, ref) => {
   const isMobile = useIsMobile()
 
@@ -106,6 +110,7 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 /** @param {React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>} param0 @param {React.ForwardedRef<React.ElementRef<typeof SelectPrimitive.Label>>} ref */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label> & React.RefAttributes<React.ElementRef<typeof SelectPrimitive.Label>>>} */
 const SelectLabel = React.forwardRef(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
@@ -115,6 +120,7 @@ const SelectLabel = React.forwardRef(({ className, ...props }, ref) => (
 SelectLabel.displayName = SelectPrimitive.Label.displayName
 
 /** @param {React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>} param0 @param {React.ForwardedRef<React.ElementRef<typeof SelectPrimitive.Item>>} ref */
+/** @type {React.ForwardRefExoticComponent<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & React.RefAttributes<React.ElementRef<typeof SelectPrimitive.Item>>>} */
 const SelectItem = React.forwardRef(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
