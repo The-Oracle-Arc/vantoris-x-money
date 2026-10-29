@@ -1,7 +1,14 @@
 import React from 'react';
 
 /** Consistent page header and content shell for the Operations Center. */
-export default function OperationsPageLayout({ title, description, icon: Icon, actions, children, breadcrumb }) {
+export default function OperationsPageLayout({
+  title,
+  description,
+  icon: Icon,
+  actions = null,
+  children,
+  breadcrumb = null,
+}) {
   return (
     <div className="mx-auto max-w-[1500px]">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
