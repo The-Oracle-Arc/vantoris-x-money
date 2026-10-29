@@ -14,7 +14,7 @@ const SECTIONS = [
       { id: 'travel', label: 'Travel', desc: 'Flights, hotels, cars — provider required', icon: Compass, route: '/travel', color: 'bg-navy/8 text-navy' },
       { id: 'homes', label: 'Homes', desc: 'Licensed listings only', icon: Info, route: '/homes', color: 'bg-navy/8 text-navy' },
       { id: 'news', label: 'News', desc: 'Attributed sources only', icon: FileText, route: '/news', color: 'bg-navy/8 text-navy' },
-      { id: 'ask', label: 'Ask Vantoris', desc: 'Rules-based, no language model', icon: Sparkles, route: '/ask', color: 'bg-brass/10 text-brass' },
+      { id: 'ask', label: 'Ask Vantoris', desc: 'Private AI when configured; no fabricated answers', icon: Sparkles, route: '/ask', color: 'bg-brass/10 text-brass' },
       { id: 'support', label: 'Support', desc: 'Help and contact', icon: Phone, route: '/support', color: 'bg-emerald-500/10 text-emerald-700' },
     ],
   },
