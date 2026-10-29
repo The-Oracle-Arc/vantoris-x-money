@@ -30,15 +30,15 @@ const ACCENTS = {
 export default function VantorisKPICard({
   label,
   value,
-  sublabel,
-  icon: Icon,
+  sublabel = null,
+  icon: Icon = null,
   accent = 'navy',
-  trend,
-  alert,
-  alertIcon: AlertIcon,
-  onClick,
-  hero,
-  className,
+  trend = null,
+  alert = null,
+  alertIcon: AlertIcon = null,
+  onClick = null,
+  hero = false,
+  className = '',
 }) {
   const a = ACCENTS[accent] || ACCENTS.navy;
   const Tag = onClick ? motion.button : motion.div;
