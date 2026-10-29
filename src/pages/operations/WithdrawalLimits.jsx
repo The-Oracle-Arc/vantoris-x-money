@@ -14,7 +14,7 @@ export default function WithdrawalLimits() {
 
   async function loadLimits() {
     try {
-      const all = await base44.entities.WithdrawalLimit.list('-created_date', 50);
+      const all = await base44.entities.WithdrawalLimit.filter({}, '-created_date', 50);
       const byType = {};
       ACCOUNT_TYPES.forEach(type => {
         const limit = all.find(l => l.account_type === type);
