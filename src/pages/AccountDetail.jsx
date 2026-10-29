@@ -686,7 +686,6 @@ export default function AccountDetail() {
         open={showPin}
         onClose={() => setShowPin(false)}
         title="Authorize Withdrawal"
-        description={`Enter your 6-digit PIN to authorize ${formatCurrency(parseFloat(wForm.amount) || 0)} withdrawal.`}
       />
 
       {/* Statement Dialog */}
