@@ -6,7 +6,7 @@
  * writes to the signed-in member, so privileged fan-out must be implemented on
  * the server with authenticated caller checks and an audit trail.
  */
-export async function notifyOperators() {
+export async function notifyOperators(_request = {}) {
   return {
     sent: 0,
     unavailable: true,
