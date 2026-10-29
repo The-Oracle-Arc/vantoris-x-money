@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function SectionTitle({ icon: Icon, title, right }) {
+export default function SectionTitle({ icon: Icon, title, right = null }) {
   return (
     <div className="flex items-center justify-between mb-2.5 px-1">
       <div className="flex items-center gap-2">
