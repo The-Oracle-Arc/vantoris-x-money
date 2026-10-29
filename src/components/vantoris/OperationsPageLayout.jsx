@@ -1,6 +1,7 @@
 import React from 'react';
 
 /** Consistent page header and content shell for the Operations Center. */
+/** @param {{ title: string, description?: string, icon?: any, actions?: any, children?: import('react').ReactNode, breadcrumb?: string | null }} param0 */
 export default function OperationsPageLayout({
   title,
   description,
