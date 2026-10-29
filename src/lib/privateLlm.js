@@ -1,7 +1,15 @@
 /**
- * Self-hosted private model client.
- * The browser only calls same-origin endpoints; provider credentials remain server-side.
+ * Member-authenticated private model client.
+ * Provider credentials never enter browser code.
  */
+function getSessionToken() {
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem('base44_access_token')
+    || window.localStorage.getItem('token')
+    || window.localStorage.getItem('base44_token')
+    || '';
+}
+
 export async function askPrivateModel(prompt) {
   if (typeof prompt !== 'string' || !prompt.trim()) {
     return { ok: false, error: 'prompt_required', text: 'Enter a question to continue.' };
@@ -10,12 +18,21 @@ export async function askPrivateModel(prompt) {
     return { ok: false, error: 'prompt_too_long', text: 'Please keep your question under 4,000 characters.' };
   }
 
-  const endpoints = ['/api/ask', '/.netlify/functions/ask'];
+  const token = getSessionToken();
+  if (!token) {
+    return { ok: false, error: 'authentication_required', text: 'Sign in to use Vantoris Intelligence.' };
+  }
+
+  const endpoints = ['/.netlify/functions/ask', '/api/ask'];
   for (const url of endpoints) {
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ prompt: prompt.trim() }),
         credentials: 'same-origin',
       });
@@ -25,23 +42,21 @@ export async function askPrivateModel(prompt) {
       }
       if (response.status !== 404 && response.status !== 405) {
         const error = typeof data.error === 'string' ? data.error : 'model_unavailable';
-        return {
-          ok: false,
-          error,
-          text: error === 'not_configured'
-            ? 'The private AI service is not configured on this host yet.'
-            : 'The private AI service is temporarily unavailable. Please try again later.',
-        };
+        const message = error === 'not_configured'
+          ? 'The private AI service is not configured on this host yet.'
+          : error === 'authentication_required'
+            ? (data.message || 'Your session could not be verified. Sign in again and retry.')
+            : 'The private AI service is temporarily unavailable. Please try again later.';
+        return { ok: false, error, text: message };
       }
     } catch {
-      // Local /api/ask may not exist on a static host; try the Netlify function next.
+      // Try the alternate local/dev route when the first route is not available.
     }
   }
   return { ok: false, error: 'model_unavailable', text: 'The private AI service is unavailable on this host.' };
 }
 
 export function privateLlmConfigured() {
-  // Client-side code cannot securely determine whether the server has its secret configured.
-  // Treat this as feature availability only; the endpoint response is authoritative.
+  // Server configuration is only authoritative after an actual request.
   return true;
 }
