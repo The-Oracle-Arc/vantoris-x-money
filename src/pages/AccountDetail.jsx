@@ -58,25 +58,44 @@ export default function AccountDetail() {
   const [stmtRange, setStmtRange] = useState({ from: '', to: '' });
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [loadError, setLoadError] = useState('');
   const { toast } = useToast();
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [showHistoricalImport, setShowHistoricalImport] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [user, acct, txns, pendingWds] = await Promise.all([
-      base44.auth.me(),
-      base44.entities.Account.get(id),
+    setLoadError('');
+    const user = await base44.auth.me();
+    const acct = await base44.entities.Account.get(id);
+
+    // Never load account-linked records until the account owner is verified.
+    // Operators may inspect accounts only when the authenticated role explicitly permits it.
+    if (!acct || (acct.user_id !== user.id && user.role !== 'admin')) {
+      setCurrentUser(user);
+      setAccount(null);
+      setTransactions([]);
+      setPendingWithdrawals(0);
+      setLoadError('This account is unavailable or you do not have permission to view it.');
+      return;
+    }
+
+    const [txns, pendingWds] = await Promise.all([
       base44.entities.Transaction.filter({ account_id: id }, '-created_date', 50),
       base44.entities.WithdrawalRequest.filter({ account_id: id, status: 'pending' }),
     ]);
     setCurrentUser(user);
     setAccount(acct);
     setTransactions(txns);
-    setPendingWithdrawals(pendingWds.reduce((sum, w) => sum + (w.amount || 0), 0));
+    setPendingWithdrawals(pendingWds.reduce((sum, w) => sum + (Number(w.amount) || 0), 0));
   }, [id]);
 
   useEffect(() => {
-    loadData().catch(e => console.error(e)).finally(() => setLoading(false));
+    loadData()
+      .catch(e => {
+        console.error('Unable to load account details', e);
+        setLoadError('Account details could not be loaded. Please try again.');
+      })
+      .finally(() => setLoading(false));
   }, [loadData]);
 
   useEffect(() => {
@@ -374,10 +393,23 @@ export default function AccountDetail() {
     setShowStatement(false);
   }
 
-  if (loading || !account) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-2 border-brass/30 border-t-brass rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!account) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-5">
+        <div className="max-w-sm w-full rounded-3xl border border-border bg-white p-6 text-center shadow-sm">
+          <ShieldCheck className="mx-auto mb-3 text-brass" size={30} />
+          <h1 className="text-lg font-semibold">Account unavailable</h1>
+          <p className="mt-2 text-sm text-gray">{loadError || 'This account is unavailable or you do not have permission to view it.'}</p>
+          <button onClick={() => navigate('/accounts')} className="mt-5 w-full rounded-xl bg-navy px-4 py-3 font-semibold text-white">Back to accounts</button>
+        </div>
       </div>
     );
   }
