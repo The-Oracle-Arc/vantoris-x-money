@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/** @param {React.InputHTMLAttributes<HTMLInputElement>} param0 @param {React.ForwardedRef<HTMLInputElement>} ref */
 const Input = React.forwardRef(({ className, type, ...props }, ref) => {
   return (
     (<input
