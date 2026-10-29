@@ -286,7 +286,7 @@ export function findDuplicate(newItem, existingRecords) {
  * Consolidate a duplicate: add the new source URL to the existing record's
  * corroborating sources, update evidence, and create a change record.
  *
- * @returns {Object} - the updated existing record
+ * @returns {Promise<Object>} - the updated existing record
  */
 export async function consolidateDuplicate(existingRecord, newItem, entityType = 'DiscoveryRecord') {
   // Parse existing corroborating sources
@@ -386,7 +386,7 @@ export function flagRisks(item, verificationResult = {}) {
  * @param {string} caseId - HumanitarianCase ID
  * @param {string} newState - Target state
  * @param {Object} context - { reviewer_id, reviewer_name, notes, reason }
- * @returns {Object} - { success, oldState, newState, error }
+ * @returns {Promise<Object>} - { success, oldState, newState, error }
  */
 export async function transitionCaseState(caseId, newState, context = {}) {
   const case_ = await base44.entities.HumanitarianCase.get(caseId).catch(() => null);
