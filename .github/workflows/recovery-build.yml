@@ -3,6 +3,8 @@ name: Recovery build check
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: ["recovery/merge-vantoris-live"]
   workflow_dispatch:
 
 permissions:
@@ -20,5 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: npm install --no-audit --no-fund
       - run: npm run build
