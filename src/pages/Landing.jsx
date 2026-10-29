@@ -353,27 +353,20 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Floating premium card stack */}
-            <div className="lg:col-span-5 relative h-[320px] sm:h-[380px]">
-              <div className="absolute right-0 top-8 w-[min(100%,320px)] aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-[#1a1510] to-[#0a0a0a] border border-brass/40 shadow-2xl p-5 text-white rotate-6 opacity-80 scale-95">
-                <p className="font-heading text-sm font-bold text-brass">Credit</p>
-                <p className="font-mono mt-12 tracking-[0.18em] text-sm">•••• 8891</p>
-              </div>
-              <div className="absolute right-4 top-0 w-[min(100%,340px)] aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-[#0A1628] via-[#0E2A4A] to-[#071C38] border border-white/15 shadow-[0_25px_80px_rgba(0,0,0,0.5)] p-6 text-white -rotate-3 z-10">
-                <div className="flex justify-between items-start">
-                  <span className="font-heading font-bold tracking-wide text-lg">Vantoris</span>
-                  <span className="font-mono text-[10px] text-white/40 uppercase">Debit</span>
-                </div>
-                <div className="mt-8 w-11 h-8 rounded-md bg-gradient-to-br from-[#e8d5a3] via-[#c9a227] to-[#8a7020] shadow-inner" />
-                <p className="font-mono text-xl tracking-[0.22em] mt-6">•••• •••• •••• 4412</p>
-                <div className="mt-6 flex justify-between items-end">
-                  <div>
-                    <p className="font-mono text-[9px] text-white/35 uppercase">Cardholder</p>
-                    <p className="text-sm font-semibold tracking-wider">MEMBER NAME</p>
-                  </div>
-                  <span className="text-[10px] font-mono text-brass">NFC</span>
-                </div>
-              </div>
+            {/* Real supplied card concept art — avoid fabricated member balances on the public landing page. */}
+            <div className="lg:col-span-5 relative">
+              <figure className="overflow-hidden rounded-[1.75rem] border border-white/15 bg-[#071C38] shadow-[0_30px_90px_rgba(0,0,0,.45)]">
+                <img
+                  src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0981.jpeg"
+                  alt="Navy and gold Atchison Village Credit Union debit card concept artwork"
+                  className="block w-full h-auto object-cover"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+              </figure>
+              <p className="mt-3 text-xs leading-relaxed text-white/45">
+                Card artwork is illustrative. Card availability, network, and issuance depend on verified issuer partnerships.
+              </p>
             </div>
           </div>
 
@@ -645,6 +638,17 @@ export default function Landing() {
               Account statements use institutional hierarchy: period header, account mask, opening/closing
               balance, transaction grid, and disclosure footer—the pattern U.S. banks and wealth desks use.
             </p>
+            <figure className="mb-8 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+              <img
+                src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0983.jpeg"
+                alt="Illustrative Atchison Village Credit Union monthly statement layout"
+                className="block w-full h-auto"
+                loading="lazy"
+              />
+              <figcaption className="px-4 py-3 text-xs text-white/55">
+                Visual reference only — the figures, account details, and contact information in this artwork are not live member data.
+              </figcaption>
+            </figure>
             <div className="mt-10 rounded-2xl bg-white text-navy shadow-2xl overflow-hidden border border-white/10">
               <div className="bg-navy text-white px-6 py-4 flex flex-wrap justify-between gap-2">
                 <div>
