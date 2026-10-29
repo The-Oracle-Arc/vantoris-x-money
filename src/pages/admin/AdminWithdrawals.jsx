@@ -122,6 +122,9 @@ export default function AdminWithdrawals() {
   }
 
   async function payOne(wd, notes, startingBalance) {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     const account = getAccount(wd.account_id);
     const currentBalance = startingBalance !== undefined ? startingBalance : (account?.balance || 0);
     const newBalance = currentBalance - Math.abs(wd.amount);
@@ -148,6 +151,9 @@ export default function AdminWithdrawals() {
   }
 
   async function rejectOne(wd, notes) {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     await base44.entities.WithdrawalRequest.update(wd.id, { status: 'rejected', admin_notes: notes });
     await base44.entities.Notification.create({
       user_id: wd.user_id, title: 'Withdrawal Rejected',
@@ -163,6 +169,9 @@ export default function AdminWithdrawals() {
   }
 
   async function handlePay() {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (!selected) return;
     setSubmitting(true);
     try {
@@ -176,6 +185,9 @@ export default function AdminWithdrawals() {
   }
 
   async function handleReject() {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (!selected) return;
     setSubmitting(true);
     try {
@@ -189,6 +201,9 @@ export default function AdminWithdrawals() {
   }
 
   async function executeBulkAction() {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (!bulkAction || selectedIds.length === 0) return;
     setSubmitting(true);
     const balanceMap = {};
