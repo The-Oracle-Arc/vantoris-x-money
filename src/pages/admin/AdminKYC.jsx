@@ -27,6 +27,9 @@ export default function AdminKYC() {
   }
 
   async function handleAction(status) {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (!selected) return;
     setSubmitting(true);
     try {
@@ -60,6 +63,9 @@ export default function AdminKYC() {
   }
 
   async function handleDeleteKyc() {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (!selected) return;
     setSubmitting(true);
     try {
@@ -130,6 +136,9 @@ export default function AdminKYC() {
   }
 
   async function approveOne(app) {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     await base44.entities.Application.update(app.id, { kyc_status: 'approved' });
     await base44.entities.Notification.create({
       user_id: app.user_id,
@@ -145,6 +154,9 @@ export default function AdminKYC() {
   }
 
   async function rejectOne(app) {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     await base44.entities.Application.update(app.id, { kyc_status: 'rejected' });
     await base44.entities.Notification.create({
       user_id: app.user_id,
@@ -160,6 +172,9 @@ export default function AdminKYC() {
   }
 
   async function handleBulkApprove() {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (selectedIds.length === 0) return;
     setSubmitting(true);
     let ok = 0, fail = 0;
@@ -177,6 +192,9 @@ export default function AdminKYC() {
   }
 
   async function handleBulkReject() {
+    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+    return;
+
     if (selectedIds.length === 0) return;
     setSubmitting(true);
     let ok = 0, fail = 0;
