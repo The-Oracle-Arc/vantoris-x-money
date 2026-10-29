@@ -719,7 +719,6 @@ export default function AccountDetail() {
       {/* Security PIN Modal */}
       <SecurityPinModal
         open={showPin}
-        onVerified={handlePinVerified}
         onClose={() => setShowPin(false)}
         title="Authorize Withdrawal"
         description={`Enter your 6-digit PIN to authorize ${formatCurrency(parseFloat(wForm.amount) || 0)} withdrawal.`}
