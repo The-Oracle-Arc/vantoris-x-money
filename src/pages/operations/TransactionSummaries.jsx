@@ -62,9 +62,9 @@ export default function TransactionSummaries() {
     const deposits = monthTxns.filter(t => t.type === 'deposit' || t.type === 'opening_balance');
     const withdrawals = monthTxns.filter(t => t.type === 'withdrawal');
     const adjustments = monthTxns.filter(t => t.type === 'adjustment');
-    const totalIn = deposits.reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-    const totalOut = withdrawals.reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-    const totalAdj = adjustments.reduce((s, t) => s + (t.amount || 0), 0);
+    const totalIn = deposits.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+    const totalOut = withdrawals.reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+    const totalAdj = adjustments.reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const net = totalIn - totalOut + totalAdj;
     return {
       count: monthTxns.length,
@@ -83,7 +83,7 @@ export default function TransactionSummaries() {
     try {
       const rows = monthTxns
         .slice()
-        .sort((a, b) => getTxnDate(a) - getTxnDate(b))
+        .sort((a, b) => getTxnDate(a).getTime() - getTxnDate(b).getTime())
         .map((t, i) => {
           const acct = accountMap[t.account_id];
           return {
@@ -94,7 +94,7 @@ export default function TransactionSummaries() {
             'Account Number': acct?.account_number || '—',
             Description: t.description || '',
             Reference: t.reference || '',
-            Amount: t.amount || 0,
+            Amount: Number(t.amount) || 0,
             'Balance After': t.balance_after ?? '',
             'Admin Created': t.created_by_admin ? 'Yes' : 'No',
           };
@@ -296,7 +296,7 @@ export default function TransactionSummaries() {
                         </td>
                         <td className="px-5 py-3 text-gray text-xs">{t.description || '—'}</td>
                         <td className={`px-5 py-3 text-right font-semibold text-xs ${isInflow ? 'text-mint' : t.type === 'withdrawal' ? 'text-crimson' : 'text-foreground'}`}>
-                          {isInflow ? '+' : t.type === 'withdrawal' ? '-' : ''}{formatCurrency(Math.abs(t.amount || 0))}
+                          {isInflow ? '+' : t.type === 'withdrawal' ? '-' : ''}{formatCurrency(Math.abs(Number(t.amount) || 0))}
                         </td>
                       </tr>
                     );
@@ -318,7 +318,7 @@ export default function TransactionSummaries() {
                       {t.description && <p className="text-gray/60 text-[10px] truncate mt-0.5">{t.description}</p>}
                     </div>
                     <span className={`text-sm font-semibold flex-shrink-0 ${isInflow ? 'text-mint' : t.type === 'withdrawal' ? 'text-crimson' : 'text-foreground'}`}>
-                      {isInflow ? '+' : t.type === 'withdrawal' ? '-' : ''}{formatCurrency(Math.abs(t.amount || 0))}
+                      {isInflow ? '+' : t.type === 'withdrawal' ? '-' : ''}{formatCurrency(Math.abs(Number(t.amount) || 0))}
                     </span>
                   </div>
                 );
