@@ -2,7 +2,7 @@ import React from 'react';
 import { formatCurrency } from '@/lib/formatCurrency';
 
 /** Recharts tooltip that formats supplied values without inventing metrics. */
-export default function GlassTooltip({ active, payload, label, formatter }) {
+export default function GlassTooltip({ active = false, payload = [], label = '', formatter = null, currency = false }) {
   if (!active || !Array.isArray(payload) || payload.length === 0) return null;
   return (
     <div className="rounded-xl border border-slate-600/40 bg-[#0E1A2B]/95 p-3 shadow-xl backdrop-blur-xl">
