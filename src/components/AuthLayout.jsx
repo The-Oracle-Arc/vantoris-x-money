@@ -1,6 +1,7 @@
 import React from "react";
 import ShieldLogo from "@/components/vantoris/ShieldLogo";
 
+/** @param {{ title?: string, subtitle?: string, footer?: import('react').ReactNode, children?: import('react').ReactNode, bare?: boolean }} param0 */
 export default function AuthLayout({ title, subtitle, footer, children, bare = false }) {
   return (
     <div className="min-h-screen flex flex-col bg-background vantoris-mesh-bg">
@@ -8,7 +9,7 @@ export default function AuthLayout({ title, subtitle, footer, children, bare = f
       <div className="flex-1 flex items-start sm:items-center justify-center px-6 py-12 safe-top safe-bottom overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="text-center mb-8 animate-fade-up">
-            <ShieldLogo size={48} className="mx-auto mb-4" />
+            <ShieldLogo size={48} theme="light" className="mx-auto mb-4" />
             <h1 className="text-2xl font-bold tracking-[0.18em] text-foreground mb-1">VANTORIS</h1>
             <p className="text-gray text-[10px] tracking-[0.3em] uppercase">Private Investment & Payments</p>
           </div>
