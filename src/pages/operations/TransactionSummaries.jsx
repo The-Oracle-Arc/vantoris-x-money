@@ -154,7 +154,7 @@ export default function TransactionSummaries() {
   }, [transactions]);
 
   const sortedTxns = useMemo(() => {
-    return monthTxns.slice().sort((a, b) => getTxnDate(b) - getTxnDate(a));
+    return monthTxns.slice().sort((a, b) => getTxnDate(b).getTime() - getTxnDate(a).getTime());
   }, [monthTxns]);
 
   const summaryCards = [
