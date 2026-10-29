@@ -24,7 +24,7 @@ export default function AdminKYC() {
   useEffect(() => { loadApps(); }, []);
 
   async function loadApps() {
-    const apps = await base44.entities.Application.list('-created_date', 50);
+    const apps = await base44.entities.Application.filter({}, '-created_date', 50);
     setApplications(apps);
     setLoading(false);
   }
