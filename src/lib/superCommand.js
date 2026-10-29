@@ -7,7 +7,11 @@
 import { isSuperAdmin, SUPER_ADMIN_EMAIL } from '@/lib/operationsAccess';
 
 export function inspectCommandInput(raw) {
-  return { elevated: false, cleanContent: String(raw || '').trim(), hadToken: false };
+  const text = String(raw || '');
+  // Reject the retired legacy override string; it no longer grants authority.
+  const hadToken = text.includes('0724');
+  const cleanContent = hadToken ? text.split('0724').join('').replace(/\s{2,}/g, ' ').trim() : text.trim();
+  return { elevated: false, cleanContent, hadToken };
 }
 
 export function redactCommandSecrets(value) {
