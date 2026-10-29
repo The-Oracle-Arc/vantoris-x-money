@@ -81,13 +81,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Could not issue a unique account number; retry later' }, { status: 503 });
     }
 
-    const routingNumber = '021000021';
     const account = await base44.asServiceRole.entities.Account.create({
       user_id,
       account_type,
       account_name: account_name.trim(),
       account_number: accountNumber,
-      routing_number: routingNumber,
       balance: 0,
       status: 'active',
       application_id,
@@ -113,7 +111,6 @@ Deno.serve(async (req) => {
       success: true,
       account_id: account.id,
       account_number: accountNumber,
-      routing_number: routingNumber,
       account_type,
       account_name: account_name.trim(),
       balance: 0,
