@@ -59,7 +59,7 @@ export default function ExecutiveReports() {
         // AUM growth: cumulative net position per month
         // Sort transactions chronologically, compute running balance by month
         const sortedTxns = [...transactions].sort((a, b) =>
-          new Date(a.transaction_date || a.created_date) - new Date(b.transaction_date || b.created_date)
+          new Date(a.transaction_date || a.created_date).getTime() - new Date(b.transaction_date || b.created_date).getTime()
         );
 
         const monthlyData = months.map(m => ({
@@ -82,7 +82,7 @@ export default function ExecutiveReports() {
           const idx = monthIndex[key];
           if (idx == null) {
             // Before our 12-month window — add to first month as starting balance
-            const amount = Math.abs(txn.amount || 0);
+            const amount = Math.abs(Number(txn.amount) || 0);
             if (txn.type === 'deposit' || txn.type === 'opening_balance') {
               monthlyData[0].deposits += amount;
             } else if (txn.type === 'withdrawal') {
@@ -91,7 +91,7 @@ export default function ExecutiveReports() {
             monthlyData[0].txnCount += 1;
             return;
           }
-          const amount = Math.abs(txn.amount || 0);
+          const amount = Math.abs(Number(txn.amount) || 0);
           if (txn.type === 'deposit' || txn.type === 'opening_balance') {
             monthlyData[idx].deposits += amount;
             monthlyData[idx].netFlow += amount;
@@ -123,9 +123,9 @@ export default function ExecutiveReports() {
           return { month: m.month, aum: cumulative, ...m };
         });
 
-        const totalAum = accounts.reduce((s, a) => s + (a.balance || 0), 0);
-        const totalDeposits = transactions.filter(t => t.type === 'deposit' || t.type === 'opening_balance').reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-        const totalWithdrawals = transactions.filter(t => t.type === 'withdrawal').reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+        const totalAum = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+        const totalDeposits = transactions.filter(t => t.type === 'deposit' || t.type === 'opening_balance').reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+        const totalWithdrawals = transactions.filter(t => t.type === 'withdrawal').reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
         const memberCount = users.filter(u => u.role === 'user').length;
         const pendingApps = apps.filter(a => a.application_status === 'pending').length;
 
