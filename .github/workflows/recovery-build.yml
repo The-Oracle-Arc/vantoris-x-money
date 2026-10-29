@@ -3,8 +3,7 @@ name: Recovery build check
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: ["recovery/merge-vantoris-live"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,10 +11,15 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_BASE44_APP_ID: 6a3d85c1632966fefe16f3d4
+      VITE_BASE44_SERVER_URL: https://vantoris.base44.app
+      VITE_BASE44_APP_BASE_URL: https://vantoris-platform.netlify.app
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install --no-audit --no-fund
+          cache: npm
+      - run: npm ci --no-audit --no-fund
       - run: npm run build
