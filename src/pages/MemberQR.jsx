@@ -80,7 +80,7 @@ export default function MemberQR() {
       return;
     }
     try {
-      const { BrowserQRCodeReader } = await import('https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
+      const { BrowserQRCodeReader } = await import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm');
       const reader = new BrowserQRCodeReader();
       readerRef.current = reader;
       setScanning(true);
