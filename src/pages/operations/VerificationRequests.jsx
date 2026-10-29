@@ -27,9 +27,9 @@ export default function VerificationRequests() {
   async function loadData() {
     try {
       const [reqs, accts, usrs] = await Promise.all([
-        base44.entities.VerificationRequest.list('-created_date', 100),
-        base44.entities.Account.list('-created_date', 100),
-        base44.entities.User.list('-created_date', 100),
+        base44.entities.VerificationRequest.filter({}, '-created_date', 100),
+        base44.entities.Account.filter({}, '-created_date', 100),
+        base44.entities.User.filter({}, '-created_date', 100),
       ]);
       setRequests(reqs);
       setAccounts(accts);
