@@ -92,7 +92,7 @@ export default function Home() {
           );
           txs = batches
             .flat()
-            .sort((x, y) => new Date(y.created_date || 0) - new Date(x.created_date || 0))
+            .sort((x, y) => new Date(y.created_date || 0).getTime() - new Date(x.created_date || 0).getTime())
             .slice(0, 40);
         }
 
