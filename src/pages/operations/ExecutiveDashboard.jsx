@@ -56,7 +56,7 @@ export default function ExecutiveDashboard() {
 
   if (loading) {
     return (
-      <OperationsPageLayout title="Executive Dashboard" description="Enterprise overview and strategic metrics" icon={Crown} breadcrumb="Executive Workspace">
+      <OperationsPageLayout title="Executive Dashboard" description="Executive snapshot based on bounded records returned by connected backend queries" icon={Crown} breadcrumb="Executive Workspace">
         <VantorisLoading className="h-64" />
       </OperationsPageLayout>
     );
@@ -66,10 +66,10 @@ export default function ExecutiveDashboard() {
     <OperationsPageLayout title="Executive Dashboard" description="Enterprise overview and strategic metrics" icon={Crown} breadcrumb="Executive Workspace">
       {/* Executive KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <PremiumStatCard hero label="Assets Under Management" value={formatCurrency(stats.totalBalance)} sublabel="Total across all member accounts" icon={Wallet} accent="navy" onClick={() => navigate('/operations/finance')} />
-        <PremiumStatCard label="Total Members" value={stats.members} icon={Users} accent="blue" onClick={() => navigate('/operations/members')} />
-        <PremiumStatCard label="Pending Applications" value={stats.pendingApps} icon={FileText} accent="gold" alert={stats.pendingApps > 0 ? stats.pendingApps : ''} alertIcon={AlertTriangle} onClick={() => navigate('/operations/applications')} />
-        <PremiumStatCard label="Pending Withdrawals" value={stats.pendingWithdrawals} icon={ArrowUpRight} accent="crimson" alert={stats.pendingWithdrawals > 0 ? stats.pendingWithdrawals : ''} alertIcon={AlertTriangle} onClick={() => navigate('/operations/withdrawals')} />
+        <PremiumStatCard hero label="Returned account sample" value={formatCurrency(stats.totalBalance)} sublabel="Sum of up to 200 records; not a ledger total" icon={Wallet} accent="navy" onClick={() => navigate('/operations/finance')} />
+        <PremiumStatCard label="Member records in sample" value={stats.members} icon={Users} accent="blue" onClick={() => navigate('/operations/members')} />
+        <PremiumStatCard label="Pending applications (sample)" value={stats.pendingApps} icon={FileText} accent="gold" alert={stats.pendingApps > 0 ? stats.pendingApps : ''} alertIcon={AlertTriangle} onClick={() => navigate('/operations/applications')} />
+        <PremiumStatCard label="Pending withdrawals (sample)" value={stats.pendingWithdrawals} icon={ArrowUpRight} accent="crimson" alert={stats.pendingWithdrawals > 0 ? stats.pendingWithdrawals : ''} alertIcon={AlertTriangle} onClick={() => navigate('/operations/withdrawals')} />
       </div>
 
       {/* Treasury Position + Live Activity */}
