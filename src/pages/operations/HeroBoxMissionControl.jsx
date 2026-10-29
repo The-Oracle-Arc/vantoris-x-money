@@ -25,8 +25,8 @@ const ACTIVITY_META = {
 
 export default function HeroBoxMissionControl() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({});
-  const [missionStatus, setMissionStatus] = useState({});
+  const [stats, setStats] = useState(/** @type {any} */ ({}));
+  const [missionStatus, setMissionStatus] = useState(/** @type {any} */ ({}));
   const [queues, setQueues] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
 
@@ -49,7 +49,7 @@ export default function HeroBoxMissionControl() {
       const pendingHeroes = profiles.filter(p => p.role === 'hero' && p.status === 'pending').length;
       const packagesInProgress = requests.filter(r => r.request_type === 'care_package' && ['pending', 'under_review', 'approved', 'in_progress'].includes(r.status)).length;
       const packagesDelivered = requests.filter(r => ['delivered', 'completed'].includes(r.status)).length;
-      const fundsDistributed = activities.reduce((sum, a) => sum + (a.amount || 0), 0);
+      const fundsDistributed = activities.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
       const pendingReviews = requests.filter(r => ['pending', 'under_review'].includes(r.status)).length;
 
       setStats({
@@ -66,7 +66,7 @@ export default function HeroBoxMissionControl() {
         packagesDelivered,
         internetActive: activities.filter(a => a.activity_type === 'internet_sponsored').length,
         lettersSent: activities.filter(a => a.activity_type === 'letter_received').length,
-        volunteerHours: profiles.reduce((sum, p) => sum + (p.volunteer_hours || 0), 0),
+        volunteerHours: profiles.reduce((sum, p) => sum + (Number(p.volunteer_hours) || 0), 0),
       });
 
       setQueues([
