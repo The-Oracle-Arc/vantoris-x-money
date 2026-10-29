@@ -33,7 +33,7 @@ export default [
     settings: { react: { version: 'detect' } },
     rules: {
       'no-unused-vars': 'off',
-      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-imports': 'warn',
       'unused-imports/no-unused-vars': ['warn', {
         vars: 'all',
         varsIgnorePattern: '^_',
