@@ -9,6 +9,9 @@ import { logAuditEntry } from '@/lib/auditLogger';
 import { sendTransactionEmail } from '@/lib/transactionEmails';
 import { useToast } from '@/components/ui/use-toast';
 
+// Financial mutations remain disabled until a trusted server workflow is integrated.
+const SERVER_OPERATIONS_MUTATIONS_ENABLED = false;
+
 export default function AdminAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,11 @@ export default function AdminAccounts() {
   }
 
   async function handleAddTransaction() {
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'Account and ledger changes are blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No records or balances were changed.', variant: 'destructive' });
+      return;
+    }
+
     if (!showTxn) return;
     setSubmitting(true);
     try {
@@ -120,6 +128,11 @@ export default function AdminAccounts() {
   }
 
   async function handleEditTransaction() {
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'Account and ledger changes are blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No records or balances were changed.', variant: 'destructive' });
+      return;
+    }
+
     if (!editingTxn) return;
     setSubmitting(true);
     try {
@@ -209,6 +222,11 @@ export default function AdminAccounts() {
   }
 
   async function handleToggleFreeze(account) {
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'Account and ledger changes are blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No records or balances were changed.', variant: 'destructive' });
+      return;
+    }
+
     setToggleFreezeAccount(account);
     setFreezing(true);
     try {
@@ -246,6 +264,11 @@ export default function AdminAccounts() {
   }
 
   async function handleImportTransactions(file) {
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'Account and ledger changes are blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No records or balances were changed.', variant: 'destructive' });
+      return;
+    }
+
     if (!file) return;
     setImporting(true);
     try {
