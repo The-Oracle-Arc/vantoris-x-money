@@ -14,6 +14,9 @@ import { sendTransactionEmail } from '@/lib/transactionEmails';
 import { useToast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
 
+// Financial and identity mutations stay disabled until a trusted server workflow is integrated.
+const SERVER_OPERATIONS_MUTATIONS_ENABLED = false;
+
 const STATUS_FILTERS = ['all', 'pending', 'paid', 'rejected'];
 const METHOD_FILTERS = ['All Methods', 'ACH Transfer', 'Domestic Wire', 'International Wire', 'External Transfer', 'Check by Mail', "Cashier's Check"];
 const BULK_ACTIONS = [
@@ -122,8 +125,10 @@ export default function AdminWithdrawals() {
   }
 
   async function payOne(wd, notes, startingBalance) {
-    toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
-    return;
+    if (!SERVER_OPERATIONS_MUTATIONS_ENABLED) {
+      toast({ title: 'Action unavailable', description: 'This operation is blocked until a trusted server-side workflow with authorization, ledger validation, and audit logging is connected. No record or balance was changed.', variant: 'destructive' });
+      return;
+    }
 
     const account = getAccount(wd.account_id);
     const currentBalance = startingBalance !== undefined ? startingBalance : (account?.balance || 0);
