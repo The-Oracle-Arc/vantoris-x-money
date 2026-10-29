@@ -1,0 +1,47 @@
+{
+  "name": "WithdrawalRequest",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "ACH Transfer",
+        "Domestic Wire",
+        "International Wire",
+        "External Transfer",
+        "Check by Mail",
+        "Cashier's Check"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "admin_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_id",
+    "user_id",
+    "amount",
+    "method"
+  ]
+}
