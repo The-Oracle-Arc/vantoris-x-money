@@ -7,7 +7,7 @@ import { askPrivateModel } from '@/lib/privateLlm';
 function parseSend(text) {
   const amount = text.match(/\$?\s*(\d+(?:\.\d{1,2})?)/);
   const to = text.match(/\bto\s+([A-Za-z0-9 .@_-]{2,40})/i);
-  if (!/send|transfer|pay/i.test(text) || !amount) return null;
+  if (!/^\\s*(?:please\\s+)?(?:send|transfer|pay)\\b/i.test(text) || !amount) return null;
   return { type: 'send', amount: Number(amount[1]), to: (to?.[1] || '').trim() || 'recipient not named' };
 }
 
