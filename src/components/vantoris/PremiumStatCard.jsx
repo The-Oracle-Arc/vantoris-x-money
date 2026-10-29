@@ -21,8 +21,8 @@ export default function PremiumStatCard({
   icon: Icon,
   accent = 'navy',
   alert = null,
-  alertIcon: AlertIcon,
-  onClick,
+  alertIcon: AlertIcon = null,
+  onClick = null,
   hero = false,
   className = '',
 }) {
