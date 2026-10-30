@@ -360,6 +360,11 @@ export async function processPlaidProviderEvent(input: {
     await tx`UPDATE avcu_payments.provider_events SET processing_status='processed',
       processed_at=clock_timestamp() WHERE id=${event.id}`;
     await tx`
+      INSERT INTO avcu_payments.payment_outbox(source_event_id,base44_transfer_request_id,target_status)
+      VALUES (${event.id},${transfer.base44_transfer_request_id},${nextStatus==='pending'?'pending_settlement':nextStatus})
+      ON CONFLICT (source_event_id) DO NOTHING
+    `;
+    await tx`
       INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
       VALUES ('plaid-provider','provider_event_processed','provider_event',${event.provider_event_id},
         ${tx.json({transferId:transfer.id,status:nextStatus,journalId:journalId||null})})
@@ -445,6 +450,42 @@ export async function reverseJournal(input: {
     `;
     return { journalId: reversalId, duplicate: false };
   });
+}
+
+
+export async function listQueuedPlaidEvents(limit = 50, environment: 'sandbox' | 'production' = 'sandbox') {
+  const rows = await database()`
+    SELECT provider_event_id FROM avcu_payments.provider_events
+     WHERE provider_id='plaid' AND environment=${environment}
+       AND processing_status IN ('queued','held')
+     ORDER BY event_sequence ASC NULLS LAST LIMIT ${Math.min(Math.max(limit,1),100)}
+  `;
+  return rows.map(row => row.provider_event_id as string);
+}
+
+export async function listPendingPaymentOutbox(limit = 50) {
+  const rows = await database()`
+    SELECT id, base44_transfer_request_id, target_status, attempts
+      FROM avcu_payments.payment_outbox
+     WHERE delivered_at IS NULL ORDER BY id LIMIT ${Math.min(Math.max(limit,1),100)}
+  `;
+  return rows.map(row => ({id:Number(row.id),transferRequestId:row.base44_transfer_request_id,
+    status:row.target_status,attempts:Number(row.attempts)}));
+}
+
+export async function markPaymentOutboxDelivered(id: number): Promise<boolean> {
+  const result = await database()`
+    UPDATE avcu_payments.payment_outbox SET delivered_at=clock_timestamp(),last_error=NULL
+     WHERE id=${id} AND delivered_at IS NULL
+  `;
+  return result.count === 1;
+}
+export async function recordPaymentOutboxFailure(id: number, message: string): Promise<void> {
+  await database()`
+    UPDATE avcu_payments.payment_outbox
+       SET attempts=attempts+1,last_error=${message.slice(0,500)}
+     WHERE id=${id} AND delivered_at IS NULL
+  `;
 }
 
 export async function closePaymentStore(): Promise<void> {
