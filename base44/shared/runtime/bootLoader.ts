@@ -32,7 +32,7 @@ function createServices(base44, request) {
         if (!response.ok) throw new Error(result?.error || `AI gateway returned HTTP ${response.status}`);
         if (typeof result.text !== 'string' || !result.text.trim()) throw new Error('AI gateway returned an empty response');
         if (responseJsonSchema) {
-          const raw = result.text.trim().replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '');
+          const raw = result.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
           let parsed;
           try { parsed = JSON.parse(raw); }
           catch { throw new Error('AI gateway did not return valid structured JSON'); }
