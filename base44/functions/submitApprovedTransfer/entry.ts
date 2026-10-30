@@ -30,6 +30,11 @@ export default async function(req: Request): Promise<Response> {
 
     const rail = transfer.rail === 'ACH' ? 'ACH' : transfer.rail === 'FEDWIRE' ? 'FEDWIRE' : null;
     if (!rail) return Response.json({ error: 'Unsupported transfer rail. No bank request was sent.' }, { status: 400 });
+    const adapter = getTransferRailAdapter(rail);
+    if (adapter.providerId === 'not-configured') {
+      return Response.json({ error: 'Bank rail adapter is not configured. No bank request was sent and the request remains approved for manual handling.' }, { status: 503 });
+    }
+
     // Reserve this request atomically before any network call. A second caller cannot submit it.
     const reservation = await base44.asServiceRole.entities.TransferRequest.updateMany(
       { id: transfer.id, status: 'approved_awaiting_bank_submission' },
@@ -39,7 +44,6 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'This transfer is already being submitted or its status changed. Do not retry until checked.' }, { status: 409 });
     }
 
-    const adapter = getTransferRailAdapter(rail);
     let result;
     try {
       result = await adapter.submit({
