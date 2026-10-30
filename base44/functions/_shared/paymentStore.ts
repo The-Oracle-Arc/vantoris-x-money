@@ -188,7 +188,9 @@ export async function releaseOutgoingFundsHoldForTransfer(input:{memberId:string
   });
 }
 
-export async function recordPaymentAudit(input:{actorId:string;action:string;objectType:string;objectId:string;details:Record<string,unknown>}):Promise<void> {
+type AuditJsonValue = string | number | boolean | null | AuditJsonValue[] | { [key: string]: AuditJsonValue };
+
+export async function recordPaymentAudit(input:{actorId:string;action:string;objectType:string;objectId:string;details:Record<string,AuditJsonValue>}):Promise<void> {
   await database()`
     INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
     VALUES (${requireText(input.actorId,'actor ID',160)},${requireText(input.action,'audit action',120)},
