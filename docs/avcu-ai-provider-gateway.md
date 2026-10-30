@@ -23,7 +23,7 @@ Set `AI_PROVIDER_ORDER` to change the order. Provider credentials remain server-
 
 `AIConversation` and `AIMessage` store member-scoped conversation threads and messages. The authenticated history action returns only the current member's thread. Nexus loads recent messages before Spark generates a reply and passes the saved context into the prompt. The conversation schema also includes `memory_summary` and `preferences` fields, which Nexus can read when populated.
 
-Important limitation: this branch currently preserves conversation history; it does not yet implement an automatic memory-extraction or memory-summary update process. Do not describe `memory_summary` as automatically maintained until that writer and its retention/consent rules are implemented.
+`memory_summary` is now updated after each response with a bounded rolling record of the member's recent messages (maximum 3,000 characters). This is continuity context, not semantic memory extraction: the system does not infer stable preferences or facts. Recent transcript messages are also supplied separately. The memory writer is best-effort so a memory-write failure does not block a member response.
 
 ## Specialist context
 
