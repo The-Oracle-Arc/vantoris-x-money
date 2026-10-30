@@ -23,6 +23,19 @@ export default function Transfers() {
     } finally { setBusyRequestId(null); }
   }
 
+  async function runBankReconciliation() {
+    setBusyRequestId('bank-reconciliation');
+    try {
+      const sync = await base44.functions.invoke('syncPlaidTransferEvents', {});
+      const reconciliation = await base44.functions.invoke('reconcileBankTransfers', { limit: 100 });
+      const refreshed = await base44.entities.TransferRequest.list('-created_date', 200);
+      setRequests(refreshed);
+      window.alert(`Plaid sync: ${sync?.inserted ?? 0} new events; reconciliation: ${reconciliation?.processed ?? 0} applied, ${reconciliation?.held ?? 0} held for review.`);
+    } catch (error) {
+      window.alert(error?.message || 'Bank reconciliation could not complete. Check provider configuration and event queue.');
+    } finally { setBusyRequestId(null); }
+  }
+
   async function recordManualAction(request, action) {
     const bankReference = (window.prompt('Enter the exact bank-generated reference:', request.bank_reference || '') || '').trim();
     if (!bankReference) return;
@@ -64,7 +77,7 @@ export default function Transfers() {
       <section className="vantoris-card p-5 mb-6">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div><h2 className="text-white font-semibold">Bank transfer requests</h2><p className="text-[#AAB4C3] text-xs mt-1">ACH and domestic Fedwire · member requests only</p></div>
-          <span className="text-xs text-[#AAB4C3]">{requests.length} total</span>
+          <div className="flex items-center gap-2"><span className="text-xs text-[#AAB4C3]">{requests.length} total</span><button disabled={!!busyRequestId} onClick={runBankReconciliation} className="rounded-lg bg-sky-500/15 text-sky-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Sync & reconcile bank events</button></div>
         </div>
         {loading ? <p className="text-[#AAB4C3] text-sm">Loading requests…</p> : requests.length === 0 ? (
           <p className="text-[#AAB4C3] text-sm">No bank transfer requests recorded.</p>
