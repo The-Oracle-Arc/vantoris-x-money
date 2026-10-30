@@ -102,7 +102,7 @@ Deno.test({
           reserveOutgoingFunds({operationId:holdOperationB.id,accountRef:`test:${accountA}`,
             amountCents:4000,actorId:'integration-test'}),
         ]);
-        assertEquals(holdAttempts.filter(x=>x.status==='fulfilled').length,1,
+        assert(holdAttempts.filter(x=>x.status==='fulfilled').length===1,
           'Only one concurrent reservation may consume the 5,000-cent available balance.');
         assertEquals(holdAttempts.filter(x=>x.status==='rejected').length,1);
         const winningOperation=holdAttempts[0].status==='fulfilled'?holdOperationA:holdOperationB;
@@ -114,7 +114,7 @@ Deno.test({
           status:'released',actorId:'integration-test',reason:'Test release'}),true);
         const afterRelease=await reserveOutgoingFunds({operationId:winningOperation.id,
           accountRef:`test:${accountA}`,amountCents:4000,actorId:'integration-test'}).catch(()=>null);
-        assertEquals(afterRelease,null,'A finalized hold must not be reactivated by retry.');
+        assert(afterRelease===null,'A finalized hold must not be reactivated by retry.');
 
         const journal=await postBalancedJournal({sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
           description:'Integration test journal',entries:[
