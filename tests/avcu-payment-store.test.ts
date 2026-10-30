@@ -166,7 +166,7 @@ Deno.test({
           SELECT h.status FROM avcu_payments.outgoing_funds_holds h
           WHERE h.operation_id=${settlementOperation.id}
         `;
-        assertEquals(capturedHold[0]?.status,'captured','Settlement must capture the active funds hold atomically.');
+        assert(capturedHold[0]?.status==='captured','Settlement must capture the active funds hold atomically.');
         const outgoingSigns=await db`
           SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
            WHERE journal_id=${posted.journalId}
