@@ -8,7 +8,7 @@ This migration establishes a PostgreSQL foundation for:
 - unique payment-operation idempotency keys;
 - unique provider event identity by provider, environment and event ID;
 - unique bank receipt references and receipt idempotency keys;
-- append-only, balanced double-entry journals using positive debit cents and negative credit cents;
+- append-only, balanced double-entry journals using positive debit cents and negative credit cents;\n- append-only payment audit records with update/delete/truncate denied to the runtime role;
 - expiring worker leases with monotonically increasing fencing tokens;\n- atomic outgoing funds holds serialized on the member ledger account, with capture on settlement and release on provider failure/cancellation.
 
 ## Critical: code is wired, infrastructure is not activated
@@ -22,11 +22,11 @@ The server-side adapter is wired into outgoing transfer idempotency, Plaid event
 3. Configure `AVCU_ACH_CLEARING_LEDGER_ACCOUNT_ID` and `AVCU_FEDWIRE_CLEARING_LEDGER_ACCOUNT_ID` only after Finance and the sponsor bank approve and provision the corresponding clearing accounts. These IDs are required for settlement journal posting.
 4. Apply `migrations/001_avcu_payment_control_plane.sql` through a reviewed migration process.
 5. Create a dedicated non-superuser login role named avcu_backend through the DBA-approved secret process (NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOINHERIT). Set its password through the managed secret manager, not in source control. Apply migrations/002_avcu_backend_grants.sql to grant only the adapter's required table/function permissions. Do not grant database access to member/browser clients.
-7. Use the server-side adapter at `base44/functions/_shared/paymentStore.ts`; it claims outgoing transfer idempotency in PostgreSQL before creating the Base44 request projection, persists Plaid event pages and cursors in one transaction, commits provider settlement/reversal journals, and verifies/posts/returns incoming receipts through transactional journals with a retryable Base44 projection outbox. Keep each payment operation, idempotency claim, provider-event claim and ledger journal in one SQL transaction.
-8. Require `assert_lease` and the current fencing token before committing work performed by a leased worker. A stale worker must fail after a new owner acquires the lease.
-9. Build a reversal as a new journal with entries exactly opposite the original journal, in the same transaction; never edit or delete posted entries.
-10. Add tests for concurrent duplicate keys, duplicate bank references, stale lease takeover, stale-owner fencing, unbalanced journals, duplicate journals, exact reversals, process crashes and retry after ambiguous provider timeouts.
-11. Only after the adapter and tests pass may payment paths be switched from Base44-only persistence to this transactional authority.
+8. Use the server-side adapter at `base44/functions/_shared/paymentStore.ts`; it claims outgoing transfer idempotency in PostgreSQL before creating the Base44 request projection, persists Plaid event pages and cursors in one transaction, commits provider settlement/reversal journals, and verifies/posts/returns incoming receipts through transactional journals with a retryable Base44 projection outbox. Keep each payment operation, idempotency claim, provider-event claim and ledger journal in one SQL transaction.
+9. Require `assert_lease` and the current fencing token before committing work performed by a leased worker. A stale worker must fail after a new owner acquires the lease.
+10. Build a reversal as a new journal with entries exactly opposite the original journal, in the same transaction; never edit or delete posted entries.
+11. Add tests for concurrent duplicate keys, duplicate bank references, stale lease takeover, stale-owner fencing, unbalanced journals, duplicate journals, exact reversals, process crashes and retry after ambiguous provider timeouts.
+12. Only after the adapter and tests pass may payment paths be switched from Base44-only persistence to this transactional authority.
 
 ## Outgoing-payment funds reservation — code implemented, infrastructure/test gate remains
 
