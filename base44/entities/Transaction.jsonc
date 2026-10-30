@@ -119,77 +119,12 @@
         },
         {
           "user_condition": {
-            "role": "executive"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "administrator"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "super_administrator"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "customer_support"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "kyc_officer"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "operations_manager"
-          }
-        },
-        {
-          "user_condition": {
             "role": "treasury_officer"
           }
         },
         {
           "user_condition": {
             "role": "auditor"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "it_administrator"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "risk_officer"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "herobox_manager"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "volunteer_manager"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "shipping_manager"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "investment_manager"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "investment_officer"
           }
         }
       ]
