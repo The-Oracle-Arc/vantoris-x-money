@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getTransferRailAdapter } from '../_shared/transferRails.ts';
-import { registerPaymentTransfer, setProviderTransferReference } from '../_shared/paymentStore.ts';
+import { registerPaymentTransfer, setProviderTransferReference, setPaymentOperationStatus } from '../_shared/paymentStore.ts';
 
 const SUBMIT_ROLES = new Set(['admin', 'administrator', 'super_administrator', 'finance_officer', 'treasury_officer']);
 export default async function(req: Request): Promise<Response> {
@@ -51,6 +51,7 @@ export default async function(req: Request): Promise<Response> {
     if (!reservation?.success || reservation.updated !== 1) {
       return Response.json({ error: 'This transfer is already being submitted or its status changed. Do not retry until checked.' }, { status: 409 });
     }
+    await setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'processing');
 
     let result;
     try {
@@ -70,17 +71,23 @@ export default async function(req: Request): Promise<Response> {
       });
     } catch {
       // Network/provider timeouts can occur after acceptance. Never reopen for blind retry.
-      await base44.asServiceRole.entities.TransferRequest.updateMany(
-        { id: transfer.id, status: 'submitting_to_bank' },
-        { $set: { status: 'submission_unknown', submission_error: 'Provider result uncertain; reconcile with provider before retrying.' } },
-      );
+      await Promise.allSettled([
+        base44.asServiceRole.entities.TransferRequest.updateMany(
+          { id: transfer.id, status: 'submitting_to_bank' },
+          { $set: { status: 'submission_unknown', submission_error: 'Provider result uncertain; reconcile with provider before retrying.' } },
+        ),
+        setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'unknown'),
+      ]);
       return Response.json({ error: 'Provider result is uncertain. Transfer locked for reconciliation; do not resubmit blindly.' }, { status: 503 });
     }
     if (!result?.providerTransferId || !result.providerId) {
-      await base44.asServiceRole.entities.TransferRequest.updateMany(
-        { id: transfer.id, status: 'submitting_to_bank' },
-        { $set: { status: 'submission_unknown', submission_error: 'Provider response lacked a verifiable reference.' } },
-      );
+      await Promise.allSettled([
+        base44.asServiceRole.entities.TransferRequest.updateMany(
+          { id: transfer.id, status: 'submitting_to_bank' },
+          { $set: { status: 'submission_unknown', submission_error: 'Provider response lacked a verifiable reference.' } },
+        ),
+        setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'unknown'),
+      ]);
       return Response.json({ error: 'Provider response is incomplete. Transfer locked for reconciliation; do not resubmit.' }, { status: 502 });
     }
     await setProviderTransferReference({
