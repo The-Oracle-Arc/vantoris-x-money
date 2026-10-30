@@ -105,6 +105,12 @@ Deno.test({
         });
         assertEquals(posted.status,'settled');
         assert(posted.journalId);
+        const outgoingSigns=await db`
+          SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
+           WHERE journal_id=${posted.journalId}
+        `;
+        assertEquals(Number(outgoingSigns.find(x=>x.ledger_account_id===accountA)?.amount_cents),1000);
+        assertEquals(Number(outgoingSigns.find(x=>x.ledger_account_id===accountB)?.amount_cents),-1000);
         const returnedEventId=crypto.randomUUID();
         await db`INSERT INTO avcu_payments.provider_events
           (id,provider_id,environment,provider_event_id,transfer_reference,event_type,
@@ -141,6 +147,12 @@ Deno.test({
         });
         assertEquals(verified.status,'verified_received');
         assert(verified.journalId);
+        const incomingSigns=await db`
+          SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
+           WHERE journal_id=${verified.journalId}
+        `;
+        assertEquals(Number(incomingSigns.find(x=>x.ledger_account_id===accountB)?.amount_cents),2500);
+        assertEquals(Number(incomingSigns.find(x=>x.ledger_account_id===accountA)?.amount_cents),-2500);
         const returnedReceipt=await verifyAndPostIncomingReceipt({
           receiptId:receipt.id,actorId:'independent-verifier-2',action:'record_return',
           evidenceReference:'vault://integration-test/return',clearingLedgerAccountId:accountB
