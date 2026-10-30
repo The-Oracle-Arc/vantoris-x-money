@@ -611,9 +611,11 @@ export async function postBalancedJournal(input: {
         SELECT ledger_account_id, amount_cents FROM avcu_payments.ledger_entries
          WHERE journal_id=${prior.id}
       `;
-      const canonical = (entries: Array<{ledger_account_id: string; amount_cents: number | string}>) =>
-        entries.map(entry => [String(entry.ledger_account_id), Number(entry.amount_cents)] as const)
-          .sort((a,b) => a[0].localeCompare(b[0]) || a[1]-b[1]);
+      const canonical = (entries: readonly unknown[]) =>
+        entries.map(raw => {
+          const entry = raw as {ledger_account_id: unknown; amount_cents: unknown};
+          return [String(entry.ledger_account_id), Number(entry.amount_cents)] as const;
+        }).sort((a,b) => a[0].localeCompare(b[0]) || a[1]-b[1]);
       const expectedEntries = canonical(input.entries.map(entry => ({
         ledger_account_id: entry.ledgerAccountId, amount_cents: entry.amountCents,
       })));
