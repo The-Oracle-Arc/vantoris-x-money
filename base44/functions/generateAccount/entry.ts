@@ -54,12 +54,25 @@ Deno.serve(async (req) => {
       }, { status: 409 });
     }
 
-    // An application may produce at most one account, including on retries.
+    // Make retries safe: return the already-created account for this exact
+    // approved application instead of reporting a misleading failure.
     const existingForApplication = await base44.asServiceRole.entities.Account.filter({
       application_id,
     });
     if (existingForApplication?.length) {
-      return Response.json({ error: 'An account already exists for this application' }, { status: 409 });
+      const existing = existingForApplication[0];
+      if (existing.user_id !== user_id || existing.application_id !== application_id) {
+        return Response.json({ error: 'An account record conflicts with this application' }, { status: 409 });
+      }
+      return Response.json({
+        success: true,
+        already_created: true,
+        account_id: existing.id,
+        account_number: existing.account_number,
+        account_type: existing.account_type,
+        account_name: existing.account_name,
+        balance: existing.balance ?? 0,
+      });
     }
 
     // Opening balances are not accepted from callers. Funding requires a separate
@@ -91,21 +104,27 @@ Deno.serve(async (req) => {
       application_id,
     });
 
-    await base44.asServiceRole.entities.Notification.create({
-      user_id,
-      title: 'Account Opened',
-      message: `Your ${account_type} account has been opened. Account ending in ${accountNumber.slice(-4)}.`,
-      type: 'success',
-    });
-
-    await base44.asServiceRole.entities.AuditLog.create({
-      action_type: 'account_created',
-      description: `Account created for approved application ${application_id}`,
-      details: `Account ending in ${accountNumber.slice(-4)}; opening balance: 0`,
-      target_user_id: user_id,
-      user_id: user.id,
-      admin_name: user.full_name || user.email || 'Authorized operator',
-    });
+    // Account creation is already committed at this point. Treat notification
+    // and audit writes as separate outcomes so a retry cannot obscure the
+    // account's existence or cause an operator to attempt a duplicate opening.
+    const followUpResults = await Promise.allSettled([
+      base44.asServiceRole.entities.Notification.create({
+        user_id,
+        title: 'Account Opened',
+        message: `Your ${account_type} account has been opened. Account ending in ${accountNumber.slice(-4)}.`,
+        type: 'success',
+      }),
+      base44.asServiceRole.entities.AuditLog.create({
+        action_type: 'account_created',
+        description: `Account created for approved application ${application_id}`,
+        details: `Account ending in ${accountNumber.slice(-4)}; opening balance: 0`,
+        target_user_id: user_id,
+        user_id: user.id,
+        admin_name: user.full_name || user.email || 'Authorized operator',
+      }),
+    ]);
+    const notificationRecorded = followUpResults[0].status === 'fulfilled';
+    const auditRecorded = followUpResults[1].status === 'fulfilled';
 
     return Response.json({
       success: true,
@@ -114,6 +133,9 @@ Deno.serve(async (req) => {
       account_type,
       account_name: account_name.trim(),
       balance: 0,
+      notification_recorded: notificationRecorded,
+      audit_recorded: auditRecorded,
+      follow_up_attention_required: !notificationRecorded || !auditRecorded,
     });
   } catch {
     return Response.json({ error: 'Account creation failed; no success can be confirmed' }, { status: 500 });
