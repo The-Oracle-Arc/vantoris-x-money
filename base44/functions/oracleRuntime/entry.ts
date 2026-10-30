@@ -16,7 +16,7 @@ export default async function(req) {
     }
 
     // Boot the runtime (cached after first call)
-    const { services, runtime, stages: bootStages } = await boot(base44);
+    const { services, runtime, stages: bootStages } = await boot(base44, req);
 
     if (action === 'health') {
       const health = await services.health.runAll();
