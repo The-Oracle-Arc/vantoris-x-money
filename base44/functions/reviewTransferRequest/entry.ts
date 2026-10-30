@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { assertStaffIsNotRequester } from '../_shared/paymentAuthorization.ts';
+import { releaseOutgoingFundsHoldForTransfer } from '../_shared/paymentStore.ts';
 
 const REVIEW_ROLES = new Set([
   'admin', 'administrator', 'super_administrator', 'executive',
@@ -96,6 +97,12 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Another staff action changed this request. Refresh before trying again.' }, { status: 409 });
     }
     const updated = await base44.asServiceRole.entities.TransferRequest.get(requestId);
+    if (action === 'reject') {
+      await releaseOutgoingFundsHoldForTransfer({
+        memberId:request.user_id,clientIdempotencyKey:request.idempotency_key,
+        actorId:staff.id,reason:'Transfer request rejected by authorized staff',
+      });
+    }
     await Promise.allSettled([
       base44.asServiceRole.entities.AuditLog.create({
         action_type: `transfer_request_${action}`,
