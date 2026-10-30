@@ -302,7 +302,7 @@ export default function Landing() {
             <div className="lg:col-span-7">
               <div className="inline-flex items-center gap-2 rounded-full border border-brass/30 bg-brass/10 px-3 py-1.5 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-mono text-[11px] text-brass tracking-wide">MEMBER PLATFORM · PRODUCT PREVIEW</span>
+                <span className="font-mono text-[11px] text-brass tracking-wide">AVCU MEMBER PLATFORM</span>
               </div>
               <h1 className="font-heading text-white text-[2.75rem] sm:text-5xl lg:text-[3.75rem] font-extrabold leading-[1.02] tracking-tight">
                 Money that moves
@@ -365,7 +365,7 @@ export default function Landing() {
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between gap-4 font-mono text-[10px] sm:text-[11px] text-white/45 uppercase tracking-[0.14em]">
               <span>Statements · member tools</span>
               <span>Transfers · dedicated tools</span>
-              <span>Cards · product preview</span>
+              <span>Cards · provider availability</span>
               <span>AI · member + ops</span>
               <span>HeroBox · impact tools</span>
             </div>
@@ -447,7 +447,7 @@ export default function Landing() {
                 <p className="mt-4 text-slate-600 leading-relaxed font-body">
                   Vantoris is built like serious American retail and private banking: verified membership,
                   document vaults, elite statements, card chrome you recognize, and operator rails that
-                  stay invisible to members. Browse the previews below—<strong>no sign-in required</strong>.
+                  stay separate from member screens. Sign in to access your authorized account workspace and available services.
                 </p>
                 <ul className="mt-6 space-y-2 text-sm text-navy font-body">
                   {[
@@ -1108,7 +1108,7 @@ export default function Landing() {
           </div>
           <p className="text-[12px] text-slate-400 max-w-md">
             Banking services provided through Vantoris. Features depend on eligibility, verification,
-            and applicable terms. This page is a product preview—not a live account statement.
+            and applicable terms. This public information page is not an account statement or proof of deposit-taking or payment-rail availability.
           </p>
         </div>
       </footer>
