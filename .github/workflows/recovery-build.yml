@@ -1,0 +1,109 @@
+name: Recovery build check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: recovery-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_BASE44_APP_ID: 6a3d85c1632966fefe16f3d4
+      VITE_BASE44_SERVER_URL: https://vantoris.base44.app
+      VITE_BASE44_APP_BASE_URL: https://vantoris-platform.netlify.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node --check netlify/functions/ask.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Validate and test Oracle runtime
+        run: |
+          deno check --node-modules-dir=auto base44/functions/oracleRuntime/entry.ts
+          deno check --node-modules-dir=auto base44/functions/createTransferRequest/entry.ts
+          deno check --node-modules-dir=auto base44/functions/reviewTransferRequest/entry.ts
+          deno check --node-modules-dir=auto base44/functions/submitApprovedTransfer/entry.ts
+          deno check --node-modules-dir=auto base44/functions/bankTransferWebhook/entry.ts
+          deno check --node-modules-dir=auto base44/functions/reconcileBankTransfers/entry.ts
+          deno test --node-modules-dir=auto --allow-env base44/shared/runtime/nexus.test.ts
+      - name: Prevent direct browser AI execution paths
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, existsSync } from 'node:fs';
+          const surfaces = [
+            'src/components/vantoris/AgentChat.jsx',
+            'src/components/vantoris/VantorisAssistant.jsx',
+            'src/components/vantoris/MemberAdvisorChat.jsx',
+          ];
+          for (const file of surfaces) {
+            const source = readFileSync(file, 'utf8');
+            if (source.includes('base44.agents.') || source.includes('/.netlify/functions/ask') || source.includes('/api/ask')) {
+              throw new Error('Direct AI execution path found in ' + file);
+            }
+          }
+          const shared = readFileSync('src/lib/oracleAssistant.js', 'utf8');
+          if (!shared.includes("functions.invoke('oracleRuntime'")) throw new Error('Shared Oracle runtime client is missing');
+          if (existsSync('server/llm-proxy.mjs')) throw new Error('Obsolete standalone private-model proxy still exists');
+          console.log('Assistant entry points use the shared Oracle runtime.');
+          NODE
+      - name: Validate entity JSON and security rules
+        run: |
+          node --input-type=module <<'NODE'
+          import { readdirSync, readFileSync } from 'node:fs';
+          const dir = 'base44/entities';
+          const files = readdirSync(dir).filter((name) => name.endsWith('.jsonc'));
+          if (!files.length) throw new Error('No entity schemas found');
+          for (const file of files) {
+            const schema = JSON.parse(readFileSync(`${dir}/${file}`, 'utf8'));
+            if (!schema.name || schema.type !== 'object') throw new Error(`Invalid entity schema: ${file}`);
+          }
+          const schemas = Object.fromEntries(
+            ['Account', 'Transaction', 'WithdrawalRequest', 'TransferRequest', 'TransferWebhookEvent', 'Notification', 'User'].map((name) => {
+              const schema = JSON.parse(readFileSync(`${dir}/${name}.jsonc`, 'utf8'));
+              if (!schema.rls) throw new Error(`Missing row-level security rules: ${name}`);
+              return [name, schema];
+            })
+          );
+          for (const name of ['Account', 'Transaction', 'WithdrawalRequest', 'TransferRequest', 'TransferWebhookEvent']) {
+            const rls = schemas[name].rls;
+            for (const action of ['create', 'update', 'delete']) {
+              if (rls[action] !== false) {
+                throw new Error(`${name}.${action} must remain denied until a trusted server workflow exists`);
+              }
+            }
+          }
+          for (const action of ['create', 'read', 'update', 'delete']) {
+            const rule = schemas.Notification.rls[action];
+            if (!rule || rule['data.user_id'] !== '{{user.id}}') {
+              throw new Error(`Notification.${action} must be scoped to the signed-in owner`);
+            }
+          }
+          if (!schemas.Transaction.rls.read || !schemas.Account.rls.read) {
+            throw new Error('Account and Transaction read policies must remain explicitly defined');
+          }
+          for (const name of ['TransferRequest', 'TransferWebhookEvent']) {
+            for (const action of ['create', 'update', 'delete']) {
+              if (schemas[name]?.rls?.[action] !== false) throw new Error(`${name}.${action} must be server-only`);
+            }
+          }
+          const transfer = schemas.TransferRequest;
+          for (const status of ['awaiting_dual_approval', 'approved_awaiting_bank_submission', 'submitted_to_bank', 'pending_settlement', 'settled', 'rejected']) {
+            if (!transfer.properties.status.enum.includes(status)) throw new Error(`Missing transfer status: ${status}`);
+          }
+          console.log(`Validated ${files.length} entity schemas, denied client financial writes, and owner-scoped notification access.`);
+          NODE
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build

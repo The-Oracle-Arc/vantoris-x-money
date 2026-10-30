@@ -1,0 +1,93 @@
+{
+  "name": "Account",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "account_number": {
+      "type": "string"
+    },
+    "routing_number": {
+      "type": "string",
+      "description": "US ABA routing number (9 digits)"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "Checking",
+        "Savings",
+        "Money Market",
+        "CD",
+        "Joint",
+        "Business"
+      ]
+    },
+    "account_name": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "frozen",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "application_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_id",
+    "account_type",
+    "account_name"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "compliance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
+}

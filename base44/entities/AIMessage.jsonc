@@ -1,0 +1,6 @@
+{
+  "name":"AIMessage","type":"object",
+  "properties":{"thread_id":{"type":"string"},"user_id":{"type":"string"},"role":{"type":"string","enum":["user","assistant","system"]},"body":{"type":"string"}},
+  "required":["thread_id","user_id","role","body"],
+  "rls":{"create":false,"read":{"data.user_id":"{{user.id}}"},"update":false,"delete":false}
+}

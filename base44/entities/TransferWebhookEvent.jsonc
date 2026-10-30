@@ -1,0 +1,106 @@
+{
+  "name": "TransferWebhookEvent",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string"
+    },
+    "provider_event_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "transfer_id": {
+      "type": "string"
+    },
+    "bank_reference": {
+      "type": "string"
+    },
+    "amount_cents": {
+      "type": "integer"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "USD"
+      ]
+    },
+    "provider_status": {
+      "type": "string"
+    },
+    "signature_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "processed": {
+      "type": "boolean",
+      "default": false
+    },
+    "processing_error": {
+      "type": "string"
+    },
+    "received_at": {
+      "type": "string"
+    },
+    "processed_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "provider_event_id",
+    "event_type",
+    "signature_verified",
+    "received_at"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "compliance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
+}

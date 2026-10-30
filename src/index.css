@@ -1,0 +1,325 @@
+/* Fonts loaded in index.html: Syne + Instrument Serif + Inter + IBM Plex Mono */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* === VANTORIS Unified Institutional Design System === */
+    /* Surfaces — soft, warm-neutral, not overly blue */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    /* Brand */
+    --primary: 214 78% 12%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 16% 93%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 16% 93%;
+    --muted-foreground: 215 14% 45%;
+    --accent: 220 83% 52%;
+    --accent-foreground: 0 0% 100%;
+    /* Semantic */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 14% 90%;
+    --input: 215 14% 90%;
+    --ring: 214 78% 12%;
+    /* Charts */
+    --chart-1: 214 78% 12%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 215 14% 45%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 46 67% 47%;
+    /* Radius */
+    --radius: 0.75rem;
+    /* Typography */
+    --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    /* Font Scale */
+    --text-display: 2.25rem;
+    --text-h1: 1.75rem;
+    --text-h2: 1.375rem;
+    --text-h3: 1.125rem;
+    --text-body: 0.9375rem;
+    --text-caption: 0.75rem;
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 214 78% 12%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 16% 93%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 215 14% 90%;
+    --sidebar-ring: 214 78% 12%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+    color-scheme: light;
+    font-size: var(--text-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    font-synthesis: none;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    font-optical-sizing: auto;
+  }
+  h1 { font-size: var(--text-h1); font-weight: 700; line-height: 1.25; letter-spacing: -0.025em; text-rendering: optimizeLegibility; }
+  h2 { font-size: var(--text-h2); font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; text-rendering: optimizeLegibility; }
+  h3 { font-size: var(--text-h3); font-weight: 600; line-height: 1.35; letter-spacing: -0.012em; text-rendering: optimizeLegibility; }
+  h4 { font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; text-rendering: optimizeLegibility; }
+  .vantoris-scroll {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  button,
+  [role="tab"],
+  [role="button"],
+  a[href],
+  svg,
+  .select-none-interact {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .selectable-content,
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-left { padding-left: env(safe-area-inset-left, 0px); }
+  .safe-right { padding-right: env(safe-area-inset-right, 0px); }
+  .safe-pt-top { padding-top: max(env(safe-area-inset-top, 0px), 1.5rem); }
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #071C38; }
+
+/* =================================================================
+   VANTORIS UNIFIED SURFACE SYSTEM
+   One set of glass/card/surface classes used across the ENTIRE app.
+   ================================================================= */
+
+/* Standard institutional card */
+.vantoris-card,
+.vantoris-glass {
+  background: #FFFFFF;
+  border: 1px solid rgba(7, 28, 56, 0.07);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(7, 28, 56, 0.04), 0 4px 16px rgba(7, 28, 56, 0.04);
+}
+
+/* Flat surface — lists, table rows, subtle containers */
+.vantoris-glass-flat {
+  background: #F8FAFC;
+  border: 1px solid rgba(7, 28, 56, 0.06);
+  border-radius: 14px;
+}
+
+/* Sticky header — top bars, chat headers */
+.vantoris-glass-header {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid rgba(7, 28, 56, 0.06);
+  box-shadow: 0 1px 8px rgba(7, 28, 56, 0.03);
+}
+
+/* Sidebar — navigation panels */
+.vantoris-glass-sidebar {
+  background: #FFFFFF;
+  border-right: 1px solid rgba(7, 28, 56, 0.06);
+}
+
+/* Dropdowns — menus, popovers, action sheets */
+.vantoris-glass-dropdown {
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(7, 28, 56, 0.08);
+  box-shadow: 0 12px 40px rgba(7, 28, 56, 0.08);
+  border-radius: 14px;
+}
+
+/* Premium card — featured content, KPI cards */
+.vantoris-glass-premium {
+  background: #FFFFFF;
+  border: 1px solid rgba(7, 28, 56, 0.06);
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(7, 28, 56, 0.05), 0 2px 8px rgba(7, 28, 56, 0.03);
+}
+
+/* Dark premium surface — balance heroes, navy cards */
+.vantoris-glass-dock,
+.vantoris-balance-hero {
+  background: linear-gradient(145deg, #071C38 0%, #0E2A4A 100%);
+  border: 1px solid rgba(7, 28, 56, 0.2);
+  box-shadow: 0 8px 32px rgba(7, 28, 56, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* White text on dark surfaces — clean, crisp shadow */
+.vantoris-glass-dock,
+.vantoris-balance-hero,
+.vantoris-chat-bubble-out {
+  color: #FFFFFF;
+}
+.vantoris-glass-dock h1,
+.vantoris-glass-dock h2,
+.vantoris-glass-dock h3,
+.vantoris-glass-dock h4,
+.vantoris-glass-dock p,
+.vantoris-glass-dock span,
+.vantoris-glass-dock li,
+.vantoris-glass-dock td,
+.vantoris-glass-dock div,
+.vantoris-glass-dock a,
+.vantoris-balance-hero h1,
+.vantoris-balance-hero h2,
+.vantoris-balance-hero h3,
+.vantoris-balance-hero h4,
+.vantoris-balance-hero p,
+.vantoris-balance-hero span,
+.vantoris-balance-hero li,
+.vantoris-balance-hero td,
+.vantoris-balance-hero div,
+.vantoris-balance-hero a,
+.vantoris-chat-bubble-out p,
+.vantoris-chat-bubble-out span,
+.vantoris-chat-bubble-out h1,
+.vantoris-chat-bubble-out h2,
+.vantoris-chat-bubble-out h3 {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.vantoris-glass-dock h1,
+.vantoris-balance-hero h1,
+.vantoris-chat-bubble-out h1 {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.vantoris-glass-dock h2,
+.vantoris-balance-hero h2,
+.vantoris-chat-bubble-out h2 {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.vantoris-balance-glow {
+  background: radial-gradient(ellipse at 50% 50%, rgba(201, 162, 39, 0.06) 0%, transparent 70%);
+}
+
+/* Bottom navigation */
+.vantoris-glass-nav {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border-top: 1px solid rgba(7, 28, 56, 0.06);
+  box-shadow: 0 -4px 24px rgba(7, 28, 56, 0.04);
+}
+
+/* Shadow utilities */
+.vantoris-shadow-glow {
+  box-shadow: 0 0 0 1px rgba(7, 28, 56, 0.06), 0 8px 28px rgba(7, 28, 56, 0.05);
+}
+
+/* Mesh background — page-level */
+.vantoris-mesh-bg {
+  background-color: #F8FAFC;
+  background-image:
+    radial-gradient(at 20% 0%, rgba(7, 28, 56, 0.03) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, rgba(31, 94, 255, 0.02) 0px, transparent 50%);
+}
+
+/* Divider */
+.vantoris-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(7, 28, 56, 0.08), transparent);
+}
+
+/* Shimmer skeleton */
+@keyframes vantoris-shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.vantoris-shimmer {
+  background: linear-gradient(90deg, rgba(241, 245, 249, 0.6) 25%, rgba(226, 232, 240, 0.9) 50%, rgba(241, 245, 249, 0.6) 75%);
+  background-size: 1000px 100%;
+  animation: vantoris-shimmer 2s infinite linear;
+}
+
+/* Chat bubbles */
+.vantoris-chat-bubble-out {
+  background: linear-gradient(145deg, #071C38 0%, #0A2342 100%);
+  box-shadow: 0 2px 12px rgba(7, 28, 56, 0.15);
+}
+.vantoris-chat-bubble-in {
+  background: #FFFFFF;
+  border: 1px solid rgba(7, 28, 56, 0.06);
+  box-shadow: 0 1px 6px rgba(7, 28, 56, 0.04);
+}
+
+/* Global white text on navy backgrounds — clean, crisp shadow */
+.bg-navy,
+.bg-navy\/90,
+.bg-navy\/80 {
+  color: #FFFFFF;
+}
+.bg-navy h1, .bg-navy h2, .bg-navy h3, .bg-navy h4, .bg-navy p, .bg-navy span, .bg-navy div, .bg-navy li, .bg-navy a, .bg-navy td {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.bg-navy h1, .bg-navy h2 {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Mobile Select Bottom Sheet */
+@media (max-width: 767px) {
+  .mobile-select-content {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+    border-radius: 10px 10px 0 0 !important;
+  }
+  .mobile-select-content[data-state="open"] {
+    animation: mobileSelectSlideUp 0.25s ease-out forwards;
+  }
+  @keyframes mobileSelectSlideUp {
+    from { translate: 0 100%; opacity: 0; }
+    to { translate: 0 0; opacity: 1; }
+  }
+}
+
+@layer utilities {
+  .safe-bottom { padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .app-frame { width: 100%; max-width: 430px; margin-inline: auto; }
+  @media (min-width: 768px) {
+    .app-frame { max-width: 720px; }
+  }
+  @media (min-width: 1024px) {
+    .app-frame { max-width: 960px; }
+  }
+}
+html, body, #root { min-height: 100%; }
+img, video { max-width: 100%; height: auto; }
+button, a, input, select { touch-action: manipulation; }

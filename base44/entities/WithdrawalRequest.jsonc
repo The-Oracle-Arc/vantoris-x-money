@@ -1,0 +1,91 @@
+{
+  "name": "WithdrawalRequest",
+  "type": "object",
+  "properties": {
+    "account_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 1000000
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "ACH Transfer",
+        "Domestic Wire",
+        "International Wire",
+        "External Transfer",
+        "Check by Mail",
+        "Cashier's Check"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "admin_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_id",
+    "user_id",
+    "amount",
+    "method"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "compliance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
+}

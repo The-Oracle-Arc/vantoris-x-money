@@ -1,0 +1,6 @@
+{
+  "name":"CaseWorkspace","type":"object",
+  "properties":{"user_id":{"type":"string"},"subject":{"type":"string"},"status":{"type":"string","enum":["open","pending_review","closed"],"default":"open"},"specialists":{"type":"array","items":{"type":"string"}},"thread_id":{"type":"string"},"conversation_summary":{"type":"string"},"timeline":{"type":"string"},"priority":{"type":"string","enum":["normal","high"],"default":"normal"}},
+  "required":["user_id","subject","status"],
+  "rls":{"create":false,"read":{"$or":[{"data.user_id":"{{user.id}}"},{"user_condition":{"role":"admin"}},{"user_condition":{"role":"administrator"}},{"user_condition":{"role":"super_administrator"}},{"user_condition":{"role":"it_administrator"}},{"user_condition":{"role":"operations_manager"}},{"user_condition":{"role":"compliance_officer"}}]},"update":false,"delete":false}
+}
