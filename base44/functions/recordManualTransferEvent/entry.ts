@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { assertStaffIsNotRequester } from '../_shared/paymentAuthorization.ts';
 
 const STAFF_ROLES = new Set([
   'admin', 'administrator', 'super_administrator', 'executive',
@@ -36,6 +37,11 @@ export default async function(req: Request): Promise<Response> {
 
     const transfer = await base44.asServiceRole.entities.TransferRequest.get(requestId);
     if (!transfer) return Response.json({ error: 'Transfer request not found.' }, { status: 404 });
+    try {
+      assertStaffIsNotRequester(staff.id, transfer.user_id);
+    } catch {
+      return Response.json({ error: 'Separation of duties: the requester cannot record or reconcile their own manual transfer.' }, { status: 403 });
+    }
     const now = new Date().toISOString();
     let update: Record<string, unknown>;
 
