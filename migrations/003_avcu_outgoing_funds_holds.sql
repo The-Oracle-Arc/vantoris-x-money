@@ -105,13 +105,21 @@ SET search_path = pg_catalog, avcu_payments
 AS $$
 DECLARE
   hold_row avcu_payments.outgoing_funds_holds%ROWTYPE;
+  account_id uuid;
 BEGIN
   IF p_target_status NOT IN ('captured','released') THEN
     RAISE EXCEPTION 'INVALID_FUNDS_HOLD_TRANSITION' USING ERRCODE='22023';
   END IF;
+  -- Always take the member account lock before the hold lock. Reservation and
+  -- every ledger posting use this same order to avoid races and deadlocks.
+  SELECT ledger_account_id INTO account_id
+    FROM avcu_payments.outgoing_funds_holds
+   WHERE operation_id=p_operation_id;
+  IF NOT FOUND THEN RETURN false; END IF;
+  PERFORM 1 FROM avcu_payments.ledger_accounts
+   WHERE id=account_id FOR UPDATE;
   SELECT * INTO hold_row FROM avcu_payments.outgoing_funds_holds
    WHERE operation_id=p_operation_id FOR UPDATE;
-  IF NOT FOUND THEN RETURN false; END IF;
   IF hold_row.status=p_target_status THEN RETURN true; END IF;
   IF hold_row.status<>'active' THEN
     RAISE EXCEPTION 'FUNDS_HOLD_ALREADY_FINALIZED' USING ERRCODE='P0001';
