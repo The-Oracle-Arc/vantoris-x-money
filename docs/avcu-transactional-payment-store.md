@@ -64,3 +64,10 @@ The hold transition SQL function locks the member account before locking the hol
 `posted member balance - active outgoing holds >= 0`
 
 These controls are implemented in code and covered by static and opt-in PostgreSQL integration tests. They are not considered operationally verified until the integration suite runs against a provisioned PostgreSQL test database and CI passes on the latest commit.
+
+
+## Base44 projection outbox recovery
+
+Migration `005_avcu_payment_outbox_claims.sql` adds durable worker ownership, claim expiry, and retry availability timestamps. Reconciliation workers claim disjoint rows with `FOR UPDATE SKIP LOCKED`; only the current, unexpired owner can mark a row delivered or record its failure. A worker crash leaves the row reclaimable after its claim expires. Failed projections use bounded exponential retry delay (up to five minutes) rather than a hot retry loop.
+
+The outbox remains at-least-once delivery: Base44 projection updates must remain conditional and idempotent. Do not treat a successful provider-event transaction as proof that the Base44 display projection has already been updated.
