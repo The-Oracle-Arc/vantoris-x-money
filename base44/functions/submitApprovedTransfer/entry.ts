@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import {
   deriveProviderIdempotencyKey, registerPaymentTransfer,
-  setPaymentOperationStatus, setProviderTransferReference,
+  setPaymentOperationStatus, setProviderTransferReference, hasActiveOutgoingFundsHold,
 } from '../_shared/paymentStore.ts';
 import { assertStaffIsNotRequester } from '../_shared/paymentAuthorization.ts';
 import { getTransferRailAdapter } from '../_shared/transferRails.ts';
@@ -52,6 +52,13 @@ export default async function(req: Request): Promise<Response> {
       rail,
       amountCents: transfer.amount_cents,
     });
+    const holdActive = await hasActiveOutgoingFundsHold({
+      idempotencyKey: `${transfer.user_id}:${transfer.idempotency_key}`,
+      amountCents: transfer.amount_cents,
+    });
+    if (!holdActive) {
+      return Response.json({ error: 'A matching active funds reservation is required before bank submission. No bank request was sent.' }, { status: 409 });
+    }
     const adapter = getTransferRailAdapter(rail);
     if (adapter.providerId === 'not-configured') {
       return Response.json({ error: 'Bank rail adapter is not configured. No bank request was sent and the request remains approved for manual handling.' }, { status: 503 });
