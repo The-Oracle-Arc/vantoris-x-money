@@ -61,6 +61,13 @@ export default async function(req) {
     const thread = await services.conversation.getOrCreateThread(user.id, 'AI Assistant');
     await services.conversation.addMessage(thread.id, user.id, 'user', message);
     await services.conversation.addMessage(thread.id, user.id, 'assistant', response.content);
+    try {
+      const priorMemory = thread.memory_summary || '';
+      const continuity = [priorMemory, `Member: ${message}`].filter(Boolean).join('\\n');
+      await services.conversation.updateThread(thread.id, { memory_summary: continuity.slice(-3000) });
+    } catch (memoryError) {
+      console.warn('Oracle continuity memory update failed', { requestId: response.requestId });
+    }
 
     // Record metrics via MetricsService
     await services.metrics.increment('ai_requests', 1, { userId: user.id });
