@@ -602,8 +602,25 @@ export async function postBalancedJournal(input: {
       RETURNING id
     `;
     if (!rows.length) {
-      const [prior] = await tx`SELECT id, source_type, source_id FROM avcu_payments.ledger_journals WHERE idempotency_key=${input.idempotencyKey} FOR UPDATE`;
-      if (!prior || prior.source_type !== input.sourceType || prior.source_id !== input.sourceId) {
+      const [prior] = await tx`SELECT id, source_type, source_id, currency FROM avcu_payments.ledger_journals WHERE idempotency_key=${input.idempotencyKey} FOR UPDATE`;
+      if (!prior || prior.source_type !== input.sourceType || prior.source_id !== input.sourceId ||
+          prior.currency !== currency) {
+        throw new Error('LEDGER_IDEMPOTENCY_CONFLICT');
+      }
+      const priorEntries = await tx`
+        SELECT ledger_account_id, amount_cents FROM avcu_payments.ledger_entries
+         WHERE journal_id=${prior.id}
+      `;
+      const canonical = (entries: Array<{ledger_account_id: string; amount_cents: number | string}>) =>
+        entries.map(entry => [String(entry.ledger_account_id), Number(entry.amount_cents)] as const)
+          .sort((a,b) => a[0].localeCompare(b[0]) || a[1]-b[1]);
+      const expectedEntries = canonical(input.entries.map(entry => ({
+        ledger_account_id: entry.ledgerAccountId, amount_cents: entry.amountCents,
+      })));
+      const actualEntries = canonical(priorEntries);
+      if (actualEntries.length !== expectedEntries.length ||
+          actualEntries.some((entry,index) =>
+            entry[0] !== expectedEntries[index][0] || entry[1] !== expectedEntries[index][1])) {
         throw new Error('LEDGER_IDEMPOTENCY_CONFLICT');
       }
       return { journalId: prior.id, duplicate: true };
