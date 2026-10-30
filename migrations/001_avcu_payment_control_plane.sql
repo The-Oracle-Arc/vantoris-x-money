@@ -324,36 +324,6 @@ BEGIN
 END;
 $$;
 
-
-CREATE OR REPLACE FUNCTION avcu_payments.audit_worker_lease_change()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $
-DECLARE action_name text;
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    action_name := 'worker_lease_acquired';
-  ELSIF OLD.owner_id IS DISTINCT FROM NEW.owner_id THEN
-    action_name := 'worker_lease_recovered';
-  ELSIF NEW.expires_at > OLD.expires_at THEN
-    action_name := 'worker_lease_renewed';
-  ELSE
-    action_name := 'worker_lease_released_or_expired';
-  END IF;
-  INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
-  VALUES (NEW.owner_id::text,action_name,'worker_lease',NEW.lock_name,
-    jsonb_build_object('fencing_token',NEW.fencing_token,'expires_at',NEW.expires_at,
-      'previous_owner_id',CASE WHEN TG_OP='UPDATE' THEN OLD.owner_id::text ELSE NULL END,
-      'previous_fencing_token',CASE WHEN TG_OP='UPDATE' THEN OLD.fencing_token ELSE NULL END));
-  RETURN NEW;
-END;
-$;
-
-DROP TRIGGER IF EXISTS worker_lease_audit ON avcu_payments.worker_leases;
-CREATE TRIGGER worker_lease_audit
-AFTER INSERT OR UPDATE ON avcu_payments.worker_leases
-FOR EACH ROW EXECUTE FUNCTION avcu_payments.audit_worker_lease_change();
-
 -- No browser/member role should have direct write access. Grant only to a
 -- dedicated backend database role after the deployment's role model is reviewed.
 REVOKE ALL ON SCHEMA avcu_payments FROM PUBLIC;
