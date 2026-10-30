@@ -23,6 +23,16 @@ Deno.test('AVCU payment migration defines concurrency and ledger invariants',asy
   assert(sql.includes('reject_ledger_mutation'),'Posted ledger rows must be append-only.');
 });
 
+Deno.test('AVCU outgoing funds holds serialize concurrent spending and only allow terminal transitions',async()=>{
+  const sql=await Deno.readTextFile('migrations/003_avcu_outgoing_funds_holds.sql');
+  assert(sql.includes('CREATE TABLE IF NOT EXISTS avcu_payments.outgoing_funds_holds'),'Missing durable outgoing funds holds.');
+  assert(sql.includes('FOR UPDATE'),'Reservation must lock the member ledger account.');
+  assert(sql.includes('posted_balance-active_holds < p_amount_cents'),'Reservation must include posted balance and existing active holds.');
+  assert(sql.includes('INSUFFICIENT_AVAILABLE_FUNDS'),'Insufficient funds must fail closed.');
+  assert(sql.includes("p_target_status NOT IN ('captured','released')"),'Only capture/release transitions are allowed.');
+  assert(sql.includes('GRANT EXECUTE ON FUNCTION avcu_payments.reserve_outgoing_funds'),'Backend role must execute the reservation function.');
+});
+
 Deno.test('AVCU incoming receipt entity schema is valid and supports reversal state',async()=>{
   const schema=JSON.parse(await Deno.readTextFile('base44/entities/IncomingBankReceipt.jsonc'));
   assert(schema.properties.transactional_receipt_id,'Missing PostgreSQL receipt link.');
