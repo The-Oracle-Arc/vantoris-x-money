@@ -18,14 +18,15 @@ This is a schema foundation only. It does not make Plaid production-ready, creat
 ## Deployment requirements
 
 1. Provision a dedicated managed PostgreSQL database in an AVCU-approved environment.
-2. Store its connection string only as a server-side secret, e.g. `AVCU_LEDGER_DATABASE_URL`. Never expose it through a `VITE_` variable or browser code.
-3. Apply `migrations/001_avcu_payment_control_plane.sql` through a reviewed migration process.
-4. Create a least-privilege backend role. Do not grant database access to member/browser clients.
-5. Add a server-side adapter that runs each payment operation, idempotency claim, provider-event claim and ledger journal in a single SQL transaction.
-6. Require `assert_lease` and the current fencing token before committing work performed by a leased worker. A stale worker must fail after a new owner acquires the lease.
-7. Build a reversal as a new journal with entries exactly opposite the original journal, in the same transaction; never edit or delete posted entries.
-8. Add tests for concurrent duplicate keys, duplicate bank references, stale lease takeover, stale-owner fencing, unbalanced journals, duplicate journals, exact reversals, process crashes and retry after ambiguous provider timeouts.
-9. Only after the adapter and tests pass may payment paths be switched from Base44-only persistence to this transactional authority.
+2. Store its connection string only as a server-side secret, e.g. `AVCU_LEDGER_DATABASE_URL`. Never expose it through a `VITE_` variable or browser code. Use a separate disposable `AVCU_LEDGER_TEST_DATABASE_URL` for integration tests; the test suite creates append-only fixtures.
+3. Configure `AVCU_ACH_CLEARING_LEDGER_ACCOUNT_ID` and `AVCU_FEDWIRE_CLEARING_LEDGER_ACCOUNT_ID` only after Finance and the sponsor bank approve and provision the corresponding clearing accounts. These IDs are required for settlement journal posting.
+4. Apply `migrations/001_avcu_payment_control_plane.sql` through a reviewed migration process.
+5. Create a least-privilege backend role. Do not grant database access to member/browser clients.
+6. Use the server-side adapter at `base44/functions/_shared/paymentStore.ts`; it claims outgoing transfer idempotency in PostgreSQL before creating the Base44 request projection, persists Plaid event pages and cursors in one transaction, and commits provider settlement/reversal journals with a retryable Base44 projection outbox. Add further server-side adapters that runs each payment operation, idempotency claim, provider-event claim and ledger journal in a single SQL transaction.
+7. Require `assert_lease` and the current fencing token before committing work performed by a leased worker. A stale worker must fail after a new owner acquires the lease.
+8. Build a reversal as a new journal with entries exactly opposite the original journal, in the same transaction; never edit or delete posted entries.
+9. Add tests for concurrent duplicate keys, duplicate bank references, stale lease takeover, stale-owner fencing, unbalanced journals, duplicate journals, exact reversals, process crashes and retry after ambiguous provider timeouts.
+10. Only after the adapter and tests pass may payment paths be switched from Base44-only persistence to this transactional authority.
 
 ## Data mapping still required
 
