@@ -8,7 +8,7 @@ This migration establishes a PostgreSQL foundation for:
 - unique payment-operation idempotency keys;
 - unique provider event identity by provider, environment and event ID;
 - unique bank receipt references and receipt idempotency keys;
-- append-only, balanced double-entry journals;
+- append-only, balanced double-entry journals using positive debit cents and negative credit cents;
 - expiring worker leases with monotonically increasing fencing tokens.
 
 ## Critical: code is wired, infrastructure is not activated
@@ -32,7 +32,7 @@ The server-side adapter is wired into outgoing transfer idempotency, Plaid event
 
 - Map each verified AVCU account to one `ledger_accounts.external_account_ref` using an approved immutable account identifier.
 - Provision and reconcile the bank-clearing ledger accounts for ACH and Fedwire.
-- Confirm accounting treatment with AVCU finance, sponsor bank and auditors before enabling any posting.
+- Confirm account-normal-balance conventions and the positive-debit/negative-credit mapping with AVCU finance, sponsor bank and auditors before enabling any posting.
 - Define which provider events are authoritative for submitted, settled, returned and cancelled states.
 
 ## Release status
