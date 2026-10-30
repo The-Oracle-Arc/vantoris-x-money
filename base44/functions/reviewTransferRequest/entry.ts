@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { assertStaffIsNotRequester } from '../_shared/paymentAuthorization.ts';
 
 const REVIEW_ROLES = new Set([
   'admin', 'administrator', 'super_administrator', 'executive',
@@ -31,6 +32,11 @@ export default async function(req: Request): Promise<Response> {
 
     const request = await base44.asServiceRole.entities.TransferRequest.get(requestId);
     if (!request) return Response.json({ error: 'Transfer request not found.' }, { status: 404 });
+    try {
+      assertStaffIsNotRequester(staff.id, request.user_id);
+    } catch {
+      return Response.json({ error: 'Separation of duties: the requester cannot review, approve, or reject their own transfer.' }, { status: 403 });
+    }
 
     let update: Record<string, unknown>;
     if (action === 'reject') {
@@ -82,7 +88,6 @@ export default async function(req: Request): Promise<Response> {
       };
     }
 
-    // Atomic compare-and-set: only one reviewer/approver can move this exact prior state.
     const claim = await base44.asServiceRole.entities.TransferRequest.updateMany(
       { id: requestId, status: request.status },
       { $set: update },
