@@ -76,7 +76,7 @@
       ],
       "default": "not_posted"
     },
-    "ledger_transaction_id": {
+    "transactional_receipt_id": {\n      "type": "string"\n    },\n    "ledger_transaction_id": {
       "type": "string"
     }
   },
