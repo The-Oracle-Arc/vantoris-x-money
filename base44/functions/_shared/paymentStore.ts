@@ -197,10 +197,10 @@ export async function commitPlaidEventPage(input: {
       const rows = await tx`
         INSERT INTO avcu_payments.provider_events
           (id, provider_id, environment, provider_event_id, transfer_reference,
-           event_type, event_sequence, payload_hash, verified_at)
+           event_type, event_sequence, payload_hash, amount_cents, currency, verified_at)
         VALUES (${uuid()}, 'plaid', ${input.environment}, ${providerEventId},
           ${event.transfer_id}, ${event.event_type}, ${event.event_id},
-          ${hash}, clock_timestamp())
+          ${hash}, ${amountCents}, 'USD', clock_timestamp())
         ON CONFLICT (provider_id, environment, provider_event_id) DO NOTHING
         RETURNING id
       `;
