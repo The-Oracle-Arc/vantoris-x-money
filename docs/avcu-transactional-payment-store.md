@@ -34,6 +34,10 @@ The recovery branch now includes `migrations/003_avcu_outgoing_funds_holds.sql` 
 
 This is not yet a verified balance system: the migration is not applied, the PostgreSQL database is not provisioned/configured, the member ledger account mappings and opening balances are not reconciled, and the real database concurrency tests have not run. Existing legacy transfer projections without holds will be blocked from automated submission and settlement until operations reconciles them. Do not enable real-money transfers yet.
 
+## Manual bank workflow limitation
+
+Manual bank submission recording now requires an active matching funds hold. Manual settlement, return and failure actions are intentionally blocked until they can commit the corresponding ledger journal/hold transition in PostgreSQL. This prevents a Base44-only status change from falsely representing a settled or returned financial event. Do not bypass this guard by editing the entity directly.
+
 ## Data mapping still required
 
 - Map each verified AVCU account to one `ledger_accounts.external_account_ref` using an approved immutable account identifier.
