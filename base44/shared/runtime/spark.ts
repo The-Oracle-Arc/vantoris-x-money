@@ -13,14 +13,10 @@ export function createSpark() {
       const promptTemplate = orchestration.prompt?.template || 'You are a helpful assistant.';
       const routing = orchestration.routing;
       const isActionImpacting = routing?.isActionImpacting || false;
-
-      // Build context from platform services (Spark does NOT own these)
       const memory = orchestration.context?.memory;
       const history = orchestration.context?.history || [];
-
       const systemPrompt = this._buildSystemPrompt(promptTemplate, memory, history);
 
-      // If action-impacting, request structured recommendation output
       let responseSchema = null;
       let fullPrompt = `${systemPrompt}\n\nMember: ${request.message}`;
 
@@ -32,14 +28,14 @@ export function createSpark() {
             recommendation: {
               type: 'object',
               properties: {
-                summary: { type: 'string', description: 'Concise summary of the recommendation' },
-                supporting_evidence: { type: 'string', description: 'Data and evidence supporting the recommendation' },
+                summary: { type: 'string' },
+                supporting_evidence: { type: 'string' },
                 confidence_level: { type: 'string', enum: ['low', 'medium', 'high'] },
-                potential_risks: { type: 'string', description: 'Identified risks and mitigations' },
-                applicable_policies: { type: 'string', description: 'Relevant platform policies and procedures' },
-                recommended_action: { type: 'string', description: 'Specific next action recommended' },
-                is_escalation: { type: 'boolean', description: 'Whether this should be escalated to staff' },
-                escalation_reason: { type: 'string', description: 'Reason for escalation if applicable' },
+                potential_risks: { type: 'string' },
+                applicable_policies: { type: 'string' },
+                recommended_action: { type: 'string' },
+                is_escalation: { type: 'boolean' },
+                escalation_reason: { type: 'string' },
               },
             },
           },
@@ -54,9 +50,7 @@ export function createSpark() {
       });
 
       try {
-        // The gateway already performs provider fallback and usage reservation.
-        // Do not retry the whole gateway request here: that would reserve usage again.
-        const result = await breaker.execute(() => services.model.invoke({
+        const result: unknown = await breaker.execute(() => services.model.invoke({
           prompt: fullPrompt,
           model,
           responseJsonSchema: responseSchema || undefined,
@@ -67,15 +61,21 @@ export function createSpark() {
           payload: { requestId: request.id, model, structured: isActionImpacting },
         });
 
-        // Handle structured recommendation response
         let content = '';
-        let recommendation = null;
+        let recommendation: Record<string, unknown> | null = null;
 
-        if (typeof result === 'object' && result !== null) {
-          content = result.response || result.content || JSON.stringify(result);
-          recommendation = result.recommendation || null;
+        if (typeof result === 'object' && result !== null && !Array.isArray(result)) {
+          const record = result as Record<string, unknown>;
+          content = typeof record.response === 'string'
+            ? record.response
+            : typeof record.content === 'string'
+              ? record.content
+              : JSON.stringify(record);
+          recommendation = typeof record.recommendation === 'object' && record.recommendation !== null
+            ? record.recommendation as Record<string, unknown>
+            : null;
         } else {
-          content = typeof result === 'string' ? result : String(result);
+          content = typeof result === 'string' ? result : String(result ?? '');
         }
 
         return {
@@ -86,7 +86,7 @@ export function createSpark() {
           metadata: { model, specialist: routing?.specialist, structured: isActionImpacting },
         };
       } catch (error) {
-        logger.error('Spark reasoning failed', { requestId: request.id, error: error.message });
+        logger.error('Spark reasoning failed', { requestId: request.id, error: error instanceof Error ? error.message : String(error) });
         return {
           content: 'I apologize, but I encountered an issue processing your request. Please try again.',
           metadata: { model, degraded: true },
