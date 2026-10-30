@@ -10,6 +10,8 @@ const SUBMIT_ROLES = new Set(['admin', 'administrator', 'super_administrator', '
 export default async function(req: Request): Promise<Response> {
   let submissionReserved = false;
   let providerCallStarted = false;
+  let paymentOperationKey = '';
+  let reconcileUnexpectedFailure: (() => Promise<unknown>) | null = null;
   if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
   try {
     const base44 = createClientFromRequest(req);
@@ -28,6 +30,7 @@ export default async function(req: Request): Promise<Response> {
     } catch {
       return Response.json({ error: 'Separation of duties: the requester cannot submit their own transfer.' }, { status: 403 });
     }
+    paymentOperationKey = `${transfer.user_id}:${transfer.idempotency_key}`;
     if (transfer.status !== 'approved_awaiting_bank_submission') {
       return Response.json({ error: 'Transfer has not completed the required review approvals.' }, { status: 409 });
     }
@@ -62,6 +65,10 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'This transfer is already being submitted or its status changed. Do not retry until checked.' }, { status: 409 });
     }
     submissionReserved = true;
+    reconcileUnexpectedFailure = () => base44.asServiceRole.entities.TransferRequest.updateMany(
+      { id: transfer.id, status: 'submitting_to_bank' },
+      { $set: { status: 'submission_unknown', submission_error: 'Unexpected failure after submission reservation; reconcile before retrying.' } },
+    );
     try {
       await setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'processing');
     } catch {
@@ -136,9 +143,10 @@ export default async function(req: Request): Promise<Response> {
       // Once the request is reserved, unexpected failures must never be reported
       // as definitely not submitted. The provider may have accepted it before a
       // later persistence failure; lock it for reconciliation instead.
-      // The existing nested error handlers persist `unknown` for provider
-      // exceptions. This outer path may fail before that point, so do not
-      // overwrite the payment-operation record without a trusted key lookup.
+      await Promise.allSettled([
+        reconcileUnexpectedFailure?.() ?? Promise.resolve(),
+        paymentOperationKey ? setPaymentOperationStatus(paymentOperationKey, 'unknown') : Promise.resolve(),
+      ]);
       return Response.json({
         error: providerCallStarted
           ? 'Provider execution may have started, but finalization failed. Transfer locked for reconciliation; do not resubmit.'
