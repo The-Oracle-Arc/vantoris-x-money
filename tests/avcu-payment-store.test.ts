@@ -1,3 +1,4 @@
+import { assertStaffIsNotRequester } from '../base44/functions/_shared/paymentAuthorization.ts';
 function assert(condition:unknown,message='Assertion failed'):asserts condition {
   if(!condition) throw new Error(message);
 }
@@ -13,6 +14,15 @@ import {
   ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent,
   recordIncomingReceipt, linkIncomingReceipt, verifyAndPostIncomingReceipt, closePaymentStore,
 } from '../base44/functions/_shared/paymentStore.ts';
+
+Deno.test('AVCU transfer requester cannot act as reviewer, approver, or submitter',()=>{
+  assertStaffIsNotRequester('staff-2','member-1');
+  let rejected=false;
+  try { assertStaffIsNotRequester('member-1','member-1'); } catch(error) {
+    rejected=error instanceof Error && error.message==='SEPARATION_OF_DUTIES_REQUESTER_CONFLICT';
+  }
+  assert(rejected,'Requester self-approval must be rejected.');
+});
 
 Deno.test('AVCU provider idempotency key is stable and member-scoped',async()=>{
   const {deriveProviderIdempotencyKey}=await import('../base44/functions/_shared/paymentStore.ts');
