@@ -23,6 +23,28 @@ export default function Transfers() {
     } finally { setBusyRequestId(null); }
   }
 
+  async function recordManualAction(request, action) {
+    const bankReference = (window.prompt('Enter the exact bank-generated reference:', request.bank_reference || '') || '').trim();
+    if (!bankReference) return;
+    const evidenceReference = (window.prompt('Enter the secure evidence reference (approved document ID/location; do not paste credentials):') || '').trim();
+    if (!evidenceReference) return;
+    const note = (window.prompt('Optional operator/reconciliation note:') || '').trim();
+    setBusyRequestId(request.id);
+    try {
+      await base44.functions.invoke('recordManualTransferEvent', {
+        request_id: request.id, action, bank_reference: bankReference,
+        evidence_reference: evidenceReference, note
+      });
+      const refreshed = await base44.entities.TransferRequest.list('-created_date', 200);
+      setRequests(refreshed);
+      window.alert(action === 'record_submission'
+        ? 'Manual bank submission recorded. Settlement is not confirmed.'
+        : 'Manual bank evidence recorded. The request status has been updated.');
+    } catch (error) {
+      window.alert(error?.message || 'The manual record was not saved. No bank payment was executed by this action.');
+    } finally { setBusyRequestId(null); }
+  }
+
   useEffect(() => {
     (async () => {
       try {
@@ -53,11 +75,15 @@ export default function Transfers() {
                 <div><p className="text-white font-semibold text-sm">{r.rail} · {r.beneficiary_name || 'Beneficiary not supplied'}</p><p className="text-[#AAB4C3] text-xs mt-1">{r.beneficiary_bank_name || 'Bank not supplied'} · •••• {r.beneficiary_account_last4 || '----'}</p><p className="text-[#AAB4C3] text-[11px] mt-1">{r.user_id} · {r.created_date ? new Date(r.created_date).toLocaleString() : 'Date unavailable'}</p></div>
                 <div className="text-right shrink-0"><p className="text-white font-semibold">{formatCurrency((r.amount_cents || 0)/100)}</p><span className="inline-block mt-1 rounded-full bg-amber-500/10 text-amber-300 px-2 py-1 text-[10px] uppercase">{r.status}</span></div>
               </div>
-              <p className="mt-3 text-xs text-amber-300">Not submitted to bank. Review and separate approvals required.</p>
+              <p className="mt-3 text-xs text-amber-300">{r.manual_processing ? `Manual bank record · Reference: ${r.bank_reference || 'not recorded'}` : 'Not submitted to bank. Review and separate approvals required.'}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {r.status === 'awaiting_bank_review' && <button disabled={busyRequestId === r.id} onClick={() => actOnRequest(r.id, 'review')} className="rounded-lg bg-sky-500/15 text-sky-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Mark reviewed</button>}
                 {r.status === 'awaiting_dual_approval' && <button disabled={busyRequestId === r.id} onClick={() => actOnRequest(r.id, 'approve_second')} className="rounded-lg bg-emerald-500/15 text-emerald-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Second wire approval</button>}
                 {['awaiting_bank_review', 'awaiting_dual_approval'].includes(r.status) && <button disabled={busyRequestId === r.id} onClick={() => actOnRequest(r.id, 'reject')} className="rounded-lg bg-red-500/15 text-red-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Reject</button>}
+                {r.status === 'approved_awaiting_bank_submission' && <button disabled={busyRequestId === r.id} onClick={() => recordManualAction(r, 'record_submission')} className="rounded-lg bg-amber-500/15 text-amber-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Record manual bank submission</button>}
+                {['submitted_to_bank', 'pending_settlement'].includes(r.status) && r.manual_processing && <button disabled={busyRequestId === r.id} onClick={() => recordManualAction(r, 'reconcile_settled')} className="rounded-lg bg-emerald-500/15 text-emerald-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Verify & reconcile settled</button>}
+                {['submitted_to_bank', 'pending_settlement'].includes(r.status) && r.manual_processing && <button disabled={busyRequestId === r.id} onClick={() => recordManualAction(r, 'record_return')} className="rounded-lg bg-orange-500/15 text-orange-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Record bank return</button>}
+                {['submitted_to_bank', 'pending_settlement'].includes(r.status) && r.manual_processing && <button disabled={busyRequestId === r.id} onClick={() => recordManualAction(r, 'record_failure')} className="rounded-lg bg-red-500/15 text-red-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Record bank failure</button>}
               </div>
             </article>
           ))}</div>
