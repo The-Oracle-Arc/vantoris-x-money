@@ -43,11 +43,11 @@ export default async function(req:Request):Promise<Response>{
     let highest=afterId;
     for(const event of events){
       if(!Number.isSafeInteger(event.event_id)||event.event_id<=afterId||typeof event.transfer_id!=='string'||typeof event.event_type!=='string'){
-        held++; continue;
+        held++; break;
       }
-      highest=Math.max(highest,event.event_id);
       const cents=toCents(event.transfer_amount);
-      if(!cents){held++;continue;}
+      if(!cents){held++;break;}
+      highest=Math.max(highest,event.event_id);
       const providerEventId=`plaid-transfer-event:${event.event_id}`;
       const prior=await base44.asServiceRole.entities.TransferWebhookEvent.filter({provider_id:'plaid',provider_event_id:providerEventId});
       if(prior?.length){duplicates++;continue;}
