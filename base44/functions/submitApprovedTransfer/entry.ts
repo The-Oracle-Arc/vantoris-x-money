@@ -28,7 +28,9 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'A provider-issued beneficiary account token is required. No bank request was sent.' }, { status: 503 });
     }
 
-    const adapter = getTransferRailAdapter(transfer.rail);
+    const rail = transfer.rail === 'ACH' ? 'ACH' : transfer.rail === 'FEDWIRE' ? 'FEDWIRE' : null;
+    if (!rail) return Response.json({ error: 'Unsupported transfer rail. No bank request was sent.' }, { status: 400 });
+    const adapter = getTransferRailAdapter(rail);
     const result = await adapter.submit({
       transferRequestId: transfer.id,
       amountCents: transfer.amount_cents,
