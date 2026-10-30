@@ -77,15 +77,36 @@ Deno.serve(async (req) => {
 
     // Opening balances are not accepted from callers. Funding requires a separate
     // authorized ledger/provider workflow and must never be created by this endpoint.
-    const existingAccounts = await base44.asServiceRole.entities.Account.list('-created_date', 1000);
-    // The SDK list is capped at 1,000 records. Fail closed at that boundary:
-    // checking only a truncated list must never be treated as proof of uniqueness.
-    if (!Array.isArray(existingAccounts) || existingAccounts.length >= 1000) {
-      return Response.json({
-        error: 'Account-number uniqueness cannot be verified safely; manual review is required',
-      }, { status: 503 });
+    // Base44 supports at most 5,000 records per list request. Read every
+    // page (up to a safety ceiling) so accounts older than the first page are
+    // included in the collision check.
+    const existingNumbers = new Set<string>();
+    const pageSize = 5000;
+    const maximumScannedAccounts = 100000;
+    let offset = 0;
+    while (true) {
+      const page = await base44.asServiceRole.entities.Account.list(
+        '-created_date',
+        pageSize,
+        offset,
+        ['account_number'],
+      );
+      if (!Array.isArray(page)) {
+        return Response.json({
+          error: 'Account-number records could not be verified; manual review is required',
+        }, { status: 503 });
+      }
+      for (const record of page) {
+        if (record.account_number) existingNumbers.add(record.account_number);
+      }
+      if (page.length < pageSize) break;
+      offset += page.length;
+      if (offset >= maximumScannedAccounts) {
+        return Response.json({
+          error: 'Account-number verification limit reached; manual review is required',
+        }, { status: 503 });
+      }
     }
-    const existingNumbers = new Set(existingAccounts.map((a: any) => a.account_number).filter(Boolean));
 
     let accountNumber = '';
     for (let attempts = 0; attempts < 100; attempts++) {
