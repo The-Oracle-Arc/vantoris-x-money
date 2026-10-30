@@ -348,6 +348,20 @@ export async function processPlaidProviderEvent(input: {
     let nextStatus = '';
     let journalId: string | undefined;
     if (rawType === 'posted' || rawType === 'settled') {
+      const [reservation] = await tx`
+        SELECT h.id,h.amount_cents,h.status
+          FROM avcu_payments.payment_operations o
+          LEFT JOIN avcu_payments.outgoing_funds_holds h ON h.operation_id=o.id
+         WHERE o.operation_type='outgoing_transfer_request'
+           AND o.idempotency_key=${transfer.idempotency_key}
+         FOR UPDATE OF o
+      `;
+      if (!reservation || !reservation.id || reservation.status!=='active' ||
+          Number(reservation.amount_cents)!==Number(transfer.amount_cents)) {
+        await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+          WHERE id=${event.id}`;
+        return {status:'held',reason:'A matching active outgoing funds reservation is required before settlement posting.'};
+      }
       nextStatus = 'settled';
       if (!transfer.settled_journal_id) {
         const clearingAccountId = transfer.rail === 'ACH'
