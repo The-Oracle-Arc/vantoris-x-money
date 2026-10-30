@@ -834,7 +834,6 @@ export default function Landing() {
                   Sign in to AVCU
                 </Link>
               </div>
-              </div>
             </div>
           </div>
         </section>
