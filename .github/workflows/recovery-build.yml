@@ -39,6 +39,7 @@ jobs:
           deno check --node-modules-dir=auto base44/functions/bankTransferWebhook/entry.ts
           deno check --node-modules-dir=auto base44/functions/syncPlaidTransferEvents/entry.ts
           deno check --node-modules-dir=auto base44/functions/reconcileBankTransfers/entry.ts
+          deno check --node-modules-dir=auto base44/functions/recordIncomingBankReceipt/entry.ts
           deno test --node-modules-dir=auto --allow-env base44/shared/runtime/nexus.test.ts
           deno test --node-modules-dir=auto --allow-env tests/avcu-payment-store.test.ts
       - name: Prevent direct browser AI execution paths
