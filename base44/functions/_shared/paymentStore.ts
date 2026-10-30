@@ -195,7 +195,7 @@ export async function recordPaymentAudit(input:{actorId:string;action:string;obj
     INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
     VALUES (${requireText(input.actorId,'actor ID',160)},${requireText(input.action,'audit action',120)},
       ${requireText(input.objectType,'audit object type',80)},${requireText(input.objectId,'audit object ID',200)},
-      ${database().json(input.details)})
+      ${database().json(input.details as never)})
   `;
 }
 
