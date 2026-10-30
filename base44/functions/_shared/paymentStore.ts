@@ -35,6 +35,18 @@ function requireText(value: unknown, label: string, max = 200): string {
   return value.trim();
 }
 
+
+/** Stable RFC 4122 UUID for provider idempotency; scoped per member so two
+ * members choosing the same client key cannot collide at the provider. */
+export async function deriveProviderIdempotencyKey(memberId:string, clientKey:string):Promise<string> {
+  const name=`${requireText(memberId,'member ID',160)}:${requireText(clientKey,'client idempotency key',160)}`;
+  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(name)));
+  digest[6]=(digest[6]&0x0f)|0x50;
+  digest[8]=(digest[8]&0x3f)|0x80;
+  const hex=[...digest.slice(0,16)].map(v=>v.toString(16).padStart(2,'0')).join('');
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+}
+
 export interface OperationClaim {
   id: string;
   status: string;
