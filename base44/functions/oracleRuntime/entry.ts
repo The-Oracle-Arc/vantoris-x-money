@@ -171,6 +171,7 @@ export default async function(req) {
     return Response.json({
       response: response.content,
       requestId: response.requestId,
+      threadId: thread.id,
       metadata: response.metadata,
       sources: response.sources,
       capabilities: response.capabilities,
