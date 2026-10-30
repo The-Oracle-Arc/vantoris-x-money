@@ -97,7 +97,11 @@
     "received_at"
   ],
   "rls": {
-    "create": false,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "read": {
       "$or": [
         {
@@ -142,7 +146,11 @@
         }
       ]
     },
-    "update": false,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "delete": false
   }
 }
