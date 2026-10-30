@@ -1,7 +1,8 @@
 import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   acquireLease, releaseLease, renewLease, claimPaymentOperation,
-  ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent, closePaymentStore,
+  ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent,
+  recordIncomingReceipt, linkIncomingReceipt, verifyAndPostIncomingReceipt, closePaymentStore,
 } from '../base44/functions/_shared/paymentStore.ts';
 
 const enabled = !!Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL');
@@ -113,6 +114,30 @@ Deno.test({
         `;
         assertEquals(balances[0].entry_count,2);
         assertEquals(Number(balances[0].net),0);
+
+        const receiptKey=`receipt-${key}`;
+        const receiptInput={rail:'ACH' as const,bankReference:`bankref-${key}`,
+          idempotencyKey:receiptKey,memberAccountRef:`test:${accountA}`,
+          amountCents:2500,evidenceReference:'vault://integration-test/evidence',
+          recordedBy:'receipt-recorder'};
+        const receipt=await recordIncomingReceipt(receiptInput);
+        const receiptRetry=await recordIncomingReceipt(receiptInput);
+        assertEquals(receipt.duplicate,false);
+        assertEquals(receiptRetry.id,receipt.id);
+        assertEquals(receiptRetry.duplicate,true);
+        await linkIncomingReceipt(receipt.id,`base44-receipt:${key}`);
+        const verified=await verifyAndPostIncomingReceipt({
+          receiptId:receipt.id,actorId:'independent-verifier',action:'verify_received',
+          evidenceReference:'vault://integration-test/verified',clearingLedgerAccountId:accountB
+        });
+        assertEquals(verified.status,'verified_received');
+        assert(verified.journalId);
+        const returnedReceipt=await verifyAndPostIncomingReceipt({
+          receiptId:receipt.id,actorId:'independent-verifier-2',action:'record_return',
+          evidenceReference:'vault://integration-test/return',clearingLedgerAccountId:accountB
+        });
+        assertEquals(returnedReceipt.status,'returned');
+        assert(returnedReceipt.journalId);
 
         await assertRejects(()=>db.begin(async tx=>{
           const badId=crypto.randomUUID();
