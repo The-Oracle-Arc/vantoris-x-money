@@ -80,6 +80,13 @@
     },
     "failure_reason": {
       "type": "string"
+    },
+    "processing": {
+      "type": "boolean",
+      "default": false
+    },
+    "processing_started_at": {
+      "type": "string"
     }
   },
   "required": [
