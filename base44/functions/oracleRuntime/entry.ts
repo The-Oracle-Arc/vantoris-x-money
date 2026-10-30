@@ -20,7 +20,7 @@ export default async function(req) {
 
     if (action === 'health') {
       const health = await services.health.runAll();
-      return Response.json({ status: 'ok', health, stages: bootStages || [] });
+      return Response.json({ status: health.status || 'unknown', health, stages: bootStages || [] });
     }
 
     if (typeof message !== 'string' || !message.trim()) {
