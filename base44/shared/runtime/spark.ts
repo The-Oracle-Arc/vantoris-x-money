@@ -89,7 +89,7 @@ export function createSpark() {
         logger.error('Spark reasoning failed', { requestId: request.id, error: error.message });
         return {
           content: 'I apologize, but I encountered an issue processing your request. Please try again.',
-          metadata: { error: error.message, model },
+          metadata: { model, degraded: true },
         };
       }
     },
