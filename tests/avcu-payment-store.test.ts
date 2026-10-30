@@ -14,6 +14,16 @@ import {
   recordIncomingReceipt, linkIncomingReceipt, verifyAndPostIncomingReceipt, closePaymentStore,
 } from '../base44/functions/_shared/paymentStore.ts';
 
+Deno.test('AVCU provider idempotency key is stable and member-scoped',async()=>{
+  const {deriveProviderIdempotencyKey}=await import('../base44/functions/_shared/paymentStore.ts');
+  const first=await deriveProviderIdempotencyKey('member-a','same-client-key');
+  const retry=await deriveProviderIdempotencyKey('member-a','same-client-key');
+  const other=await deriveProviderIdempotencyKey('member-b','same-client-key');
+  assertEquals(first,retry);
+  assert(first!==other);
+  assertEquals(first.length,36);
+});
+
 const enabled = !!Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL');
 Deno.test({
   name: 'AVCU PostgreSQL payment store integration',
