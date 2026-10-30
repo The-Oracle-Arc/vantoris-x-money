@@ -45,6 +45,22 @@
     },
     "processed_at": {
       "type": "string"
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "webhook_type": {
+      "type": "string"
+    },
+    "webhook_code": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "sandbox",
+        "production"
+      ]
     }
   },
   "required": [
