@@ -136,6 +136,16 @@ export async function registerPaymentTransfer(input: {
   });
 }
 
+
+export async function setPaymentOperationStatus(idempotencyKey:string,status:'accepted'|'processing'|'unknown'|'succeeded'|'failed'|'reversed'):Promise<void> {
+  const result=await database()`
+    UPDATE avcu_payments.payment_operations
+       SET status=${status},updated_at=clock_timestamp()
+     WHERE operation_type='outgoing_transfer_request' AND idempotency_key=${idempotencyKey}
+  `;
+  if(result.count!==1) throw new Error('PAYMENT_OPERATION_NOT_FOUND');
+}
+
 export async function setProviderTransferReference(input: {
   base44TransferRequestId: string; providerId: string; providerTransferId: string;
 }): Promise<void> {
@@ -371,6 +381,13 @@ export async function processPlaidProviderEvent(input: {
       return { status:'held', reason:'Unsupported Plaid transfer event type.' };
     }
 
+    const operationStatus = nextStatus === 'settled' ? 'succeeded'
+      : nextStatus === 'returned' ? 'reversed'
+      : ['failed','cancelled'].includes(nextStatus) ? 'failed' : 'processing';
+    await tx`UPDATE avcu_payments.payment_operations
+      SET status=${operationStatus},updated_at=clock_timestamp()
+      WHERE operation_type='outgoing_transfer_request'
+        AND idempotency_key=${transfer.idempotency_key}`;
     await tx`UPDATE avcu_payments.provider_events SET processing_status='processed',
       processed_at=clock_timestamp() WHERE id=${event.id}`;
     await tx`
