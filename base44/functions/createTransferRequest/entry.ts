@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { claimPaymentOperation, registerPaymentTransfer } from '../_shared/paymentStore.ts';
 
 const MAX_AMOUNT_CENTS = 100000000;
 const RAILS = new Set(['ACH', 'FEDWIRE', 'INTERNAL']);
@@ -41,13 +42,32 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'The selected source account is unavailable.' }, { status: 404 });
     }
 
+    // PostgreSQL's unique constraint arbitrates concurrent retries before the
+    // Base44 projection is created. The database URL is server-side only.
+    const operation = await claimPaymentOperation({
+      operationType: 'outgoing_transfer_request',
+      idempotencyKey: `${member.id}:${key}`,
+      request: {
+        user_id: member.id, source_account_id: sourceAccountId, rail,
+        amount_cents: cents, currency: 'USD', beneficiary_name: beneficiaryName,
+        beneficiary_bank_name: bankName, beneficiary_routing_number: routing,
+        beneficiary_account_last4: accountLast4, memo,
+      },
+    });
     const existing = await base44.asServiceRole.entities.TransferRequest.filter({
       user_id: member.id,
       idempotency_key: key,
     });
     if (existing?.length) {
       const prior = existing[0];
+      await registerPaymentTransfer({
+        base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
+        sourceAccountRef: sourceAccountId, rail, amountCents: cents,
+      });
       return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
+    }
+    if (!operation.created) {
+      return Response.json({ error: 'This request key is already being recovered. Retry shortly with the same details; do not create a new key.' }, { status: 409 });
     }
 
     const request = await base44.asServiceRole.entities.TransferRequest.create({
@@ -64,6 +84,11 @@ export default async function(req: Request): Promise<Response> {
       memo,
       idempotency_key: key,
       status: 'awaiting_bank_review',
+    });
+
+    await registerPaymentTransfer({
+      base44TransferRequestId: request.id, idempotencyKey: `${member.id}:${key}`,
+      sourceAccountRef: sourceAccountId, rail, amountCents: cents,
     });
 
     await Promise.allSettled([
