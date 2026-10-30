@@ -1,0 +1,47 @@
+{
+  "name": "PlaidTransferSyncState",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string",
+      "enum": [
+        "sandbox",
+        "production"
+      ]
+    },
+    "after_id": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "syncing": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_synced_at": {
+      "type": "string"
+    },
+    "last_error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "environment",
+    "after_id",
+    "syncing"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": false,
+    "delete": false
+  }
+}
