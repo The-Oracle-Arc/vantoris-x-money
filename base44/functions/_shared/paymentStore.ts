@@ -490,6 +490,13 @@ export async function processPlaidProviderEvent(input: {
           `;
           const originalEntries = await tx`SELECT ledger_account_id,amount_cents
             FROM avcu_payments.ledger_entries WHERE journal_id=${transfer.settled_journal_id}`;
+          for (const accountId of [...new Set(originalEntries.map((entry) => String(entry.ledger_account_id)))].sort()) {
+            const [locked] = await tx`
+              SELECT id FROM avcu_payments.ledger_accounts
+               WHERE id=${accountId} AND currency=${original.currency} FOR UPDATE
+            `;
+            if (!locked) throw new Error('PROVIDER_RETURN_ACCOUNT_LOCK_FAILED');
+          }
           for (const entry of originalEntries) {
             await tx`INSERT INTO avcu_payments.ledger_entries
               (id,journal_id,ledger_account_id,currency,amount_cents)
@@ -571,17 +578,6 @@ export async function postBalancedJournal(input: {
       if (!account) throw new Error('LEDGER_ACCOUNT_NOT_FOUND_OR_CURRENCY_MISMATCH');
       accountTypes.set(accountId, String(account.account_type));
     }
-    // A normal debit may not consume cents already reserved by pending transfers.
-    for (const [accountId, netAmount] of grouped) {
-      if (accountTypes.get(accountId) !== 'member_deposit') continue;
-      const [balance] = await tx`
-        SELECT
-          -COALESCE((SELECT sum(amount_cents) FROM avcu_payments.ledger_entries WHERE ledger_account_id=${accountId}),0) AS posted_cents,
-          COALESCE((SELECT sum(amount_cents) FROM avcu_payments.outgoing_funds_holds WHERE ledger_account_id=${accountId} AND status='active'),0) AS held_cents
-      `;
-      const availableAfter = Number(balance.posted_cents) - Number(balance.held_cents) - netAmount;
-      if (availableAfter < 0) throw new Error('INSUFFICIENT_AVAILABLE_FUNDS_AFTER_HOLDS');
-    }
     const id = uuid();
     const rows = await tx`
       INSERT INTO avcu_payments.ledger_journals
@@ -596,6 +592,18 @@ export async function postBalancedJournal(input: {
         throw new Error('LEDGER_IDEMPOTENCY_CONFLICT');
       }
       return { journalId: prior.id, duplicate: true };
+    }
+    // A normal debit may not consume cents already reserved by pending transfers.
+    // This check follows the idempotency claim so successful retries remain duplicates.
+    for (const [accountId, netAmount] of grouped) {
+      if (accountTypes.get(accountId) !== 'member_deposit') continue;
+      const [balance] = await tx`
+        SELECT
+          -COALESCE((SELECT sum(amount_cents) FROM avcu_payments.ledger_entries WHERE ledger_account_id=${accountId}),0) AS posted_cents,
+          COALESCE((SELECT sum(amount_cents) FROM avcu_payments.outgoing_funds_holds WHERE ledger_account_id=${accountId} AND status='active'),0) AS held_cents
+      `;
+      const availableAfter = Number(balance.posted_cents) - Number(balance.held_cents) - netAmount;
+      if (availableAfter < 0) throw new Error('INSUFFICIENT_AVAILABLE_FUNDS_AFTER_HOLDS');
     }
     for (const entry of input.entries) {
       await tx`INSERT INTO avcu_payments.ledger_entries
