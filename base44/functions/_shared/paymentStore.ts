@@ -281,6 +281,20 @@ export async function processPlaidProviderEvent(input: {
     }
 
     const rawType = String(event.event_type).toLowerCase().replace(/^transfer[._]/,'');
+    const currentStatus = String(transfer.status);
+    if (['settled','returned','failed','cancelled'].includes(currentStatus)) {
+      const safeDuplicate = currentStatus === 'settled' && ['posted','settled','pending'].includes(rawType);
+      if (!safeDuplicate) {
+        await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+          WHERE id=${event.id}`;
+        return { status:'held', reason:'Provider event would move a terminal transfer into an invalid state.' };
+      }
+      if (currentStatus === 'settled' && rawType === 'pending') {
+        await tx`UPDATE avcu_payments.provider_events SET processing_status='processed',processed_at=clock_timestamp()
+          WHERE id=${event.id}`;
+        return { status:'ignored_status_regression' };
+      }
+    }
     let nextStatus = '';
     let journalId: string | undefined;
     if (rawType === 'posted' || rawType === 'settled') {
@@ -420,10 +434,10 @@ export async function reverseJournal(input: {
        WHERE id=${input.originalJournalId} FOR UPDATE
     `;
     if (!original) throw new Error('ORIGINAL_JOURNAL_NOT_FOUND');
-    const [prior] = await tx`SELECT id FROM avcu_payments.ledger_journals WHERE reversal_of=${original.id}`;
+    const [prior] = await tx`SELECT id, idempotency_key FROM avcu_payments.ledger_journals WHERE reversal_of=${original.id}`;
     if (prior) {
-      if (input.idempotencyKey) return { journalId: prior.id, duplicate: true };
-      throw new Error('JOURNAL_ALREADY_REVERSED');
+      if (prior.idempotency_key === input.idempotencyKey) return { journalId: prior.id, duplicate: true };
+      throw new Error('JOURNAL_ALREADY_REVERSED_WITH_DIFFERENT_KEY');
     }
     const reversalId = uuid();
     await tx`
