@@ -1,69 +1,113 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+function decodeBase64Url(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
 }
 
-async function verifyHmac(rawBody: string, supplied: string, secret: string): Promise<boolean> {
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  const digest = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody)));
-  const normalized = supplied.replace(/^sha256=/i, '').trim().toLowerCase();
-  const expected = toHex(digest);
-  if (!/^[a-f0-9]{64}$/.test(normalized) || normalized.length !== expected.length) return false;
+function constantTimeEqual(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
   let mismatch = 0;
-  for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ normalized.charCodeAt(i);
+  for (let i = 0; i < left.length; i++) mismatch |= left.charCodeAt(i) ^ right.charCodeAt(i);
   return mismatch === 0;
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyPlaidWebhook(rawBody: string, token: string, clientId: string, secret: string, apiBase: string): Promise<boolean> {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const header = JSON.parse(new TextDecoder().decode(decodeBase64Url(parts[0])));
+    const payload = JSON.parse(new TextDecoder().decode(decodeBase64Url(parts[1])));
+    if (header.alg !== 'ES256' || typeof header.kid !== 'string' ||
+        !Number.isFinite(payload.iat) || typeof payload.request_body_sha256 !== 'string') return false;
+
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.iat > now + 30 || now - payload.iat > 300) return false;
+
+    const keyResponse = await fetch(`${apiBase}/webhook_verification_key/get`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, secret, key_id: header.kid }),
+    });
+    if (!keyResponse.ok) return false;
+    const keyPayload = await keyResponse.json();
+    const jwk = keyPayload?.key;
+    if (!jwk || jwk.kid !== header.kid || jwk.alg !== 'ES256' || jwk.crv !== 'P-256') return false;
+
+    const publicKey = await crypto.subtle.importKey(
+      'jwk', jwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'],
+    );
+    const validSignature = await crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      publicKey,
+      decodeBase64Url(parts[2]),
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+    );
+    if (!validSignature) return false;
+
+    const actualHash = await sha256Hex(rawBody);
+    return constantTimeEqual(actualHash, payload.request_body_sha256.toLowerCase());
+  } catch {
+    return false;
+  }
 }
 
 export default async function(req: Request): Promise<Response> {
   if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
-  const providerId = Deno.env.get('AVCU_BANK_PROVIDER_ID');
-  const secret = Deno.env.get('AVCU_BANK_WEBHOOK_SECRET');
-  if (!providerId || !secret) {
-    return Response.json({ error: 'Bank webhook is not configured. No event was accepted.' }, { status: 503 });
+  const clientId = Deno.env.get('PLAID_CLIENT_ID');
+  const secret = Deno.env.get('PLAID_SECRET');
+  const environment = Deno.env.get('PLAID_ENV');
+  if (!clientId || !secret || !['sandbox', 'production'].includes(environment || '')) {
+    return Response.json({ error: 'Plaid webhook verification is not configured. No event was accepted.' }, { status: 503 });
   }
+
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get('x-avcu-signature') || '';
-    if (!await verifyHmac(rawBody, signature, secret)) {
-      return Response.json({ error: 'Invalid webhook signature.' }, { status: 401 });
+    const verificationToken = req.headers.get('plaid-verification') || '';
+    const apiBase = environment === 'production' ? 'https://production.plaid.com' : 'https://sandbox.plaid.com';
+    if (!await verifyPlaidWebhook(rawBody, verificationToken, clientId, secret, apiBase)) {
+      return Response.json({ error: 'Plaid webhook verification failed.' }, { status: 401 });
     }
 
     const payload = JSON.parse(rawBody);
-    const eventId = typeof payload.id === 'string' ? payload.id.trim() : '';
-    const eventType = typeof payload.type === 'string' ? payload.type.trim() : '';
-    const transfer = payload.data && typeof payload.data === 'object' ? payload.data : {};
-    const transferId = typeof transfer.transfer_id === 'string' ? transfer.transfer_id.trim() : '';
-    const bankReference = typeof transfer.bank_reference === 'string' ? transfer.bank_reference.trim() : '';
-    const amountCents = transfer.amount_cents;
-    if (!eventId || !eventType || (!transferId && !bankReference) ||
-        !Number.isSafeInteger(amountCents) || amountCents < 1 || transfer.currency !== 'USD') {
-      return Response.json({ error: 'Webhook payload is incomplete or invalid.' }, { status: 400 });
+    const webhookType = typeof payload.webhook_type === 'string' ? payload.webhook_type : '';
+    const webhookCode = typeof payload.webhook_code === 'string' ? payload.webhook_code : '';
+    const itemId = typeof payload.item_id === 'string' ? payload.item_id : '';
+    if (webhookType !== 'TRANSFER' || webhookCode !== 'TRANSFER_EVENTS_UPDATE' || !itemId) {
+      return Response.json({ accepted: true, ignored: true }, { status: 200 });
     }
 
     const base44 = createClientFromRequest(req);
+    const eventId = await sha256Hex(rawBody);
     const existing = await base44.asServiceRole.entities.TransferWebhookEvent.filter({
-      provider_id: providerId, provider_event_id: eventId,
+      provider_id: 'plaid', provider_event_id: eventId,
     });
     if (existing?.length) return Response.json({ accepted: true, duplicate: true }, { status: 200 });
 
     await base44.asServiceRole.entities.TransferWebhookEvent.create({
-      provider_id: providerId,
+      provider_id: 'plaid',
       provider_event_id: eventId,
-      event_type: eventType,
-      transfer_id: transferId,
-      bank_reference: bankReference,
-      amount_cents: amountCents,
-      currency: 'USD',
-      provider_status: typeof transfer.status === 'string' ? transfer.status : '',
+      event_type: `${webhookType}.${webhookCode}`,
+      webhook_type: webhookType,
+      webhook_code: webhookCode,
+      item_id: itemId,
+      environment,
       signature_verified: true,
       processed: false,
       received_at: new Date().toISOString(),
     });
-    return Response.json({ accepted: true, processed: false, message: 'Signature verified. Event stored for reconciliation.' }, { status: 202 });
+    return Response.json({
+      accepted: true,
+      queued: true,
+      message: 'Plaid signature verified. Transfer event sync is required before updating any payment status.',
+    }, { status: 202 });
   } catch {
-    return Response.json({ error: 'Webhook could not be accepted.' }, { status: 400 });
+    return Response.json({ error: 'Plaid webhook could not be accepted.' }, { status: 400 });
   }
 }
