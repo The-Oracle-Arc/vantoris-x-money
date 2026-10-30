@@ -7,6 +7,7 @@ const STAFF_ROLES = new Set([
 ]);
 const STATUS_MAP: Record<string, string> = {
   submitted: 'submitted_to_bank',
+  posted: 'submitted_to_bank',
   pending: 'pending_settlement',
   settled: 'settled',
   failed: 'failed',
@@ -28,41 +29,58 @@ export default async function(req: Request): Promise<Response> {
     const body = await req.json().catch(() => null);
     const limit = Number.isInteger(body?.limit) ? Math.min(Math.max(body.limit, 1), 100) : 50;
     const events = await base44.asServiceRole.entities.TransferWebhookEvent.filter({
-      provider_id: providerId, signature_verified: true, processed: false,
+      provider_id: providerId, processed: false,
     });
     let processed = 0;
     let unmatched = 0;
     let held = 0;
 
-    for (const event of (events || []).slice(0, limit)) {
+    for (const event of (events || []).filter((e:any) => e.signature_verified === true || e.provider_api_verified === true).slice(0, limit)) {
+      const claim = await base44.asServiceRole.entities.TransferWebhookEvent.updateMany(
+        { id: event.id, processed: false, processing: false },
+        { $set: { processing: true, processing_started_at: new Date().toISOString() } },
+      );
+      if (!claim?.success || claim.updated !== 1) { held++; continue; }
+      const release = async (reason:string) => {
+        await base44.asServiceRole.entities.TransferWebhookEvent.updateMany(
+          { id: event.id, processed: false, processing: true },
+          { $set: { processing: false, processing_error: reason } },
+        );
+      };
       const status = STATUS_MAP[event.provider_status];
-      if (!status) { held++; continue; }
+      if (!status) { held++; await release('Unsupported provider event status'); continue; }
       const filters = event.transfer_id
         ? { provider_transfer_id: event.transfer_id, provider_id: providerId }
         : { bank_reference: event.bank_reference, provider_id: providerId };
       const matches = await base44.asServiceRole.entities.TransferRequest.filter(filters);
-      if (!matches?.length) { unmatched++; continue; }
+      if (!matches?.length) { unmatched++; await release('No matching transfer request'); continue; }
       const transfer = matches[0];
       if (matches.length !== 1 || transfer.amount_cents !== event.amount_cents ||
           transfer.currency !== event.currency || transfer.rail === 'INTERNAL') {
         held++;
+        await release('Transfer match is ambiguous or amount/currency/rail did not match');
         continue;
       }
-      if (!['approved_awaiting_bank_submission', 'submitted_to_bank', 'pending_settlement', 'settled'].includes(transfer.status)) {
+      if (!['approved_awaiting_bank_submission', 'submitted_to_bank', 'pending_settlement', 'settled', 'returned', 'failed'].includes(transfer.status)) {
         held++;
+        await release('Transfer state is not eligible for this provider event');
         continue;
       }
 
-      await base44.asServiceRole.entities.TransferRequest.update(transfer.id, {
-        status,
-        provider_id: providerId,
-        provider_transfer_id: event.transfer_id || transfer.provider_transfer_id || '',
-        bank_reference: event.bank_reference || transfer.bank_reference || '',
-        webhook_last_event_id: event.provider_event_id,
-        ...(status === 'settled' ? { settled_at: new Date().toISOString() } : {}),
-      });
+      const applied = await base44.asServiceRole.entities.TransferRequest.updateMany(
+        { id: transfer.id, status: transfer.status },
+        { $set: {
+          status,
+          provider_id: providerId,
+          provider_transfer_id: event.transfer_id || transfer.provider_transfer_id || '',
+          bank_reference: event.bank_reference || transfer.bank_reference || '',
+          webhook_last_event_id: event.provider_event_id,
+          ...(status === 'settled' ? { settled_at: new Date().toISOString() } : {}),
+        } },
+      );
+      if (!applied?.success || applied.updated !== 1) { held++; await release('Transfer state changed concurrently'); continue; }
       await base44.asServiceRole.entities.TransferWebhookEvent.update(event.id, {
-        processed: true, processed_at: new Date().toISOString(), processing_error: '',
+        processed: true, processing: false, processed_at: new Date().toISOString(), processing_error: '',
       });
       await base44.asServiceRole.entities.AuditLog.create({
         action_type: 'bank_transfer_reconciled',
