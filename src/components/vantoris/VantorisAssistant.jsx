@@ -7,17 +7,15 @@ import { isSuperAdmin } from '@/lib/operationsAccess';
 import {
   inspectCommandInput,
   executeElevatedCommand,
-  clearConversationCompletely,
   redactCommandSecrets,
 } from '@/lib/superCommand';
 
 /**
  * VantorisAssistant — the single customer-facing AI assistant.
  *
- * Uses the Vantoris Assistant agent via the Base44 agents SDK.
- * Internally, the agent coordinates through Vantoris Command with 16
- * specialist divisions. The frontend owns no business logic — it renders
- * messages and streams the agent's responses.
+ * All assistant requests use the authenticated Oracle runtime. The runtime
+ * owns persistent conversation history, specialist routing, policy checks,
+ * and provider fallback; this component only renders the conversation.
  */
 export default function VantorisAssistant() {
   const [messages, setMessages] = useState([]);
