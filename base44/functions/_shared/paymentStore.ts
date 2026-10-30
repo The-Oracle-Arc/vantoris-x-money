@@ -292,7 +292,7 @@ export async function processPlaidProviderEvent(input: {
         `;
         const [clearing] = await tx`
           SELECT id FROM avcu_payments.ledger_accounts
-           WHERE id=${input.clearingLedgerAccountId} AND account_type='bank_clearing'
+           WHERE id=${transfer.rail === 'ACH' ? input.clearingLedgerAccountIds.ACH : input.clearingLedgerAccountIds.FEDWIRE} AND account_type='bank_clearing'
              AND currency=${transfer.currency}
         `;
         if (!memberLedger || !clearing) {
