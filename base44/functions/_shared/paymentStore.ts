@@ -165,6 +165,15 @@ export async function reserveOutgoingFunds(input:{
   return {holdId:row.hold_id,availableAfterCents:Number(row.available_after_cents),duplicate:row.duplicate};
 }
 
+export async function recordPaymentAudit(input:{actorId:string;action:string;objectType:string;objectId:string;details:Record<string,unknown>}):Promise<void> {
+  await database()`
+    INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+    VALUES (${requireText(input.actorId,'actor ID',160)},${requireText(input.action,'audit action',120)},
+      ${requireText(input.objectType,'audit object type',80)},${requireText(input.objectId,'audit object ID',200)},
+      ${database().json(input.details)})
+  `;
+}
+
 export async function hasActiveOutgoingFundsHold(input:{idempotencyKey:string;amountCents:number}):Promise<boolean> {
   const rows=await database()`
     SELECT h.id FROM avcu_payments.payment_operations o
