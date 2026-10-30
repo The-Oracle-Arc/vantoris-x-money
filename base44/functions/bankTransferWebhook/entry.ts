@@ -82,10 +82,12 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ accepted: true, ignored: true }, { status: 200 });
     }
 
+    const internalSecret = Deno.env.get('AVCU_INTERNAL_SYNC_SECRET');
+    if (!internalSecret) return Response.json({ error: 'Internal event-sync authorization is not configured.' }, { status: 503 });
     const base44 = createClientFromRequest(req);
     // Plaid's webhook contains only a notification. The authoritative event details
     // must be fetched from /transfer/event/sync; never treat this ping as a payment event.
-    const sync = await base44.asServiceRole.functions.invoke('syncPlaidTransferEvents', {});
+    const sync = await base44.asServiceRole.functions.invoke('syncPlaidTransferEvents', { internal_secret: internalSecret });
     return Response.json({
       accepted: true,
       sync_triggered: true,
