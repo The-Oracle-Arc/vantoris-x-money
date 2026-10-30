@@ -6,7 +6,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 });
 
 function bearer(request) {
-  const match = (request.headers.get('authorization') || '').match(/^Bearer\\s+(.+)$/i);
+  const match = (request.headers.get('authorization') || '').match(/^Bearer\s+(.+)$/i);
   return match?.[1]?.trim() || '';
 }
 
@@ -60,7 +60,7 @@ async function reserveUsage(userId, monthlyLimit) {
     "redis.call('EXPIRE', KEYS[3], 120)",
     "return {1, u, s, 'ok'}",
   ].join('; ');
-  const response = await fetch(url.replace(/\\/$/, ''), {
+  const response = await fetch(url.replace(/\/$/, ''), {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify(['EVAL', script, '3', userKey, spendKey, minuteKey, String(monthlyLimit), String(MAX_REQUEST_COST_CENTS), String(MAX_DAILY_SPEND_CENTS), String(perMinuteLimit)]),
@@ -124,7 +124,7 @@ async function readAnthropic(prompt) {
 async function callBase44(client, prompt) {
   const invoke = client?.integrations?.Core?.InvokeLLM;
   if (typeof invoke !== 'function') throw new Error('base44_invoke_unavailable');
-  const result = await invoke({ prompt: `${SYSTEM_PROMPT}\\n\\nMember question: ${prompt}` });
+  const result = await invoke({ prompt: `${SYSTEM_PROMPT}\n\nMember question: ${prompt}` });
   const text = typeof result === 'string' ? result : result?.text || result?.response;
   if (typeof text !== 'string' || !text.trim()) throw new Error('base44_empty_response');
   return { text: text.trim().slice(0, 20000), provider: 'base44', usage: null };
@@ -145,7 +145,7 @@ async function callProvider(name, client, prompt) {
   if (name === 'private') {
     if (!process.env.PRIVATE_LLM_URL) throw new Error('private_not_configured');
     const endpoint = new URL(process.env.PRIVATE_LLM_URL);
-    if (!['https:', 'http:'].includes(endpoint.protocol)) throw new Error('private_invalid_url');
+    if (endpoint.protocol !== 'https:') throw new Error('private_invalid_url');
     return readOpenAICompatible({ url: endpoint.toString(), key: process.env.PRIVATE_LLM_KEY || '', model: process.env.PRIVATE_LLM_MODEL || 'qwen2.5:7b', prompt, provider: 'private' });
   }
   throw new Error('unknown_provider');
