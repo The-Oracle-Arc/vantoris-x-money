@@ -17,6 +17,19 @@ CREATE TABLE IF NOT EXISTS avcu_payments.provider_cursors (
 );
 
 
+
+CREATE TABLE IF NOT EXISTS avcu_payments.payment_audit (
+  id bigserial PRIMARY KEY,
+  actor_id text NOT NULL,
+  action text NOT NULL,
+  object_type text NOT NULL,
+  object_id text NOT NULL,
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX IF NOT EXISTS payment_audit_object_idx
+  ON avcu_payments.payment_audit(object_type, object_id, created_at);
+
 CREATE TABLE IF NOT EXISTS avcu_payments.payment_operations (
   id uuid PRIMARY KEY,
   operation_type text NOT NULL,
