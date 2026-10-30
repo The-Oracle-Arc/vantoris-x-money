@@ -5,7 +5,7 @@ let client: Sql | null = null;
 
 function database(): Sql {
   if (client) return client;
-  const url = Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL') || Deno.env.get('AVCU_LEDGER_DATABASE_URL');
+  const url = Deno.env.get('AVCU_LEDGER_DATABASE_URL');
   if (!url) throw new Error('AVCU_LEDGER_DATABASE_URL is not configured; payment-critical storage is unavailable.');
   const parsed = new URL(url);
   if (parsed.protocol !== 'postgres:' && parsed.protocol !== 'postgresql:') {
