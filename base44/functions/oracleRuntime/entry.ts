@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { boot } from '../../shared/runtime/bootLoader.ts';
-import { logger } from '../../shared/runtime/logger.ts';
 
 export default async function(req) {
   try {
@@ -44,8 +43,10 @@ export default async function(req) {
         timestamp: new Date().toISOString(),
         source: 'bud',
       },
-      capabilities: context?.capabilities || ['reasoning', 'knowledge'],
-      priority: context?.priority || 'normal',
+      // Never accept privilege or model-priority hints from the browser.
+      // The authenticated member receives only the baseline capabilities.
+      capabilities: ['reasoning', 'knowledge'],
+      priority: 'normal',
     };
 
     const response = await runtime.oracle.process(request);
@@ -157,7 +158,7 @@ export default async function(req) {
         });
       }
     } catch (persistError) {
-      logger.error('Case workspace persistence failed', { error: persistError.message });
+      console.error('Case workspace persistence failed', { message: persistError.message });
       // Don't fail the request — the member still gets their response
     }
 
@@ -174,7 +175,8 @@ export default async function(req) {
       escalated: response.escalate || false,
     });
   } catch (error) {
-    logger.error('Oracle runtime error', { error: error.message });
-    return Response.json({ error: error.message }, { status: 500 });
+    // Keep internal exception details in server logs, never in member responses.
+    console.error('Oracle runtime error', { message: error?.message || 'Unknown error' });
+    return Response.json({ error: 'The assistant is temporarily unavailable. Please try again.' }, { status: 500 });
   }
 }
