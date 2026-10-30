@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom';
 const SERVER_OPERATIONS_MUTATIONS_ENABLED = false;
 
 const STATUS_FILTERS = ['all', 'pending', 'paid', 'rejected'];
+const STATUS_LABELS = { all: 'All', pending: 'Pending', paid: 'Legacy paid*', rejected: 'Rejected' };
 const METHOD_FILTERS = ['All Methods', 'ACH Transfer', 'Domestic Wire', 'International Wire', 'External Transfer', 'Check by Mail', "Cashier's Check"];
 const BULK_ACTIONS = [
   { id: 'pay', label: 'Approve', icon: Check, color: 'bg-mint text-white hover:bg-mint/90' },
@@ -102,11 +103,11 @@ export default function AdminWithdrawals() {
   const summary = useMemo(() => {
     const total = filteredWithdrawals.length;
     const pending = filteredWithdrawals.filter(w => w.status === 'pending').length;
-    const paid = filteredWithdrawals.filter(w => w.status === 'paid').length;
+    const legacyPaid = filteredWithdrawals.filter(w => w.status === 'paid').length;
     const rejected = filteredWithdrawals.filter(w => w.status === 'rejected').length;
     const totalAmount = filteredWithdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + Math.abs(w.amount), 0);
     const flagged = filteredWithdrawals.filter(w => checkWithdrawalLimit(getAccount(w.account_id), Math.abs(w.amount))).length;
-    return { total, pending, paid, rejected, totalAmount, flagged };
+    return { total, pending, legacyPaid, rejected, totalAmount, flagged };
   }, [filteredWithdrawals, accounts, limits]);
 
   function toggleSelect(id) {
@@ -264,7 +265,7 @@ export default function AdminWithdrawals() {
 
   if (loading) {
     return (
-      <OperationsPageLayout title="Withdrawals" description="Enterprise withdrawal management workspace" icon={ArrowUpRight}>
+      <OperationsPageLayout title="Withdrawals" description="Read-only withdrawal queue · legacy status labels are not bank settlement evidence" icon={ArrowUpRight}>
         <div className="flex items-center justify-center h-96">
           <div className="w-8 h-8 border-2 border-brass/30 border-t-brass rounded-full animate-spin" />
         </div>
@@ -277,13 +278,17 @@ export default function AdminWithdrawals() {
       title="Withdrawals"
       description="Enterprise withdrawal management workspace"
       icon={ArrowUpRight}
-      breadcrumb="Operations · Payments"
+      breadcrumb="Operations · Payment review"
       actions={
         <Link to="/operations/withdrawal-audit-log" className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray hover:text-navy transition-colors">
           <ShieldCheck size={14} /> Audit Trail
         </Link>
       }
     >
+      <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 text-xs leading-relaxed">
+        <strong className="block mb-1">Read-only control notice</strong>
+        Approve, reject, and bulk financial mutations remain disabled until server-side authorization and ledger controls are deployed. “Legacy paid” is an old application status only; it is not evidence that ACH, Fedwire, or another payment rail settled. Confirm settlement only against sponsor-bank evidence and reconciliation records.
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_300px] gap-4">
         {/* === LEFT: Advanced Filters === */}
         <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
@@ -616,8 +621,8 @@ export default function AdminWithdrawals() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="vantoris-glass-flat p-3">
                       <CheckCircle2 size={12} className="text-mint mb-1" />
-                      <p className="text-foreground font-bold text-base">{summary.paid}</p>
-                      <p className="text-gray text-[9px] uppercase tracking-wider font-semibold">Paid</p>
+                      <p className="text-foreground font-bold text-base">{summary.legacyPaid}</p>
+                      <p className="text-gray text-[9px] uppercase tracking-wider font-semibold" >Legacy paid*</p>
                     </div>
                     <div className="vantoris-glass-flat p-3">
                       <XCircle size={12} className="text-crimson mb-1" />
@@ -659,7 +664,7 @@ export default function AdminWithdrawals() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-mint animate-pulse" />
-              <span className="text-gray">Real-time · {summary.pending} pending</span>
+              <span className="text-gray">Queue snapshot · {summary.pending} pending</span>
             </div>
             {submitting && (
               <div className="flex items-center gap-1.5">
@@ -670,7 +675,7 @@ export default function AdminWithdrawals() {
           </div>
           <div className="flex items-center gap-2 text-xs text-gray">
             <ShieldCheck size={13} className="text-mint" />
-            <span>All actions audit-logged</span>
+            <span>Audit evidence must be verified separately</span>
           </div>
         </div>
       </div>
