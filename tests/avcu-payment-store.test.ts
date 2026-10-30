@@ -141,6 +141,10 @@ Deno.test({
 
         const transferId=crypto.randomUUID();
         const providerTransferId=`plaid-test-${key}`;
+        const settlementOperation=await claimPaymentOperation({operationType:'outgoing_transfer_request',
+          idempotencyKey:`transfer-test:${key}`,request:{amountCents:1000,account:accountA}});
+        await reserveOutgoingFunds({operationId:settlementOperation.id,accountRef:`test:${accountA}`,
+          amountCents:1000,actorId:'integration-test'});
         await db`INSERT INTO avcu_payments.payment_transfers
           (id,base44_transfer_request_id,idempotency_key,source_account_ref,provider_id,
            provider_transfer_id,rail,amount_cents,status)
