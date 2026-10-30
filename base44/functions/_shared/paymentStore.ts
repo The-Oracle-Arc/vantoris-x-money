@@ -293,7 +293,7 @@ export async function processPlaidProviderEvent(input: {
     const rawType = String(event.event_type).toLowerCase().replace(/^transfer[._]/,'');
     const currentStatus = String(transfer.status);
     if (['settled','returned','failed','cancelled'].includes(currentStatus)) {
-      const safeDuplicate = currentStatus === 'settled' && ['posted','settled','pending'].includes(rawType);
+      const safeDuplicate = currentStatus === 'settled' && ['posted','settled','pending','returned'].includes(rawType);
       if (!safeDuplicate) {
         await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
           WHERE id=${event.id}`;
@@ -609,6 +609,9 @@ export async function verifyAndPostIncomingReceipt(input:{
       if(receipt.verification_status==='awaiting_verification') {
         await tx`UPDATE avcu_payments.bank_receipts SET verification_status='returned',
           verified_by=${input.actorId} WHERE id=${receipt.id}`;
+        await tx`INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+          VALUES (${input.actorId},'incoming_receipt_returned_before_posting','bank_receipt',${receipt.id},
+            ${tx.json({evidenceReference:input.evidenceReference})})`;
         return {status:'returned',duplicate:false};
       }
       if(receipt.verification_status!=='verified_received'||!receipt.ledger_journal_id) throw new Error('RECEIPT_STATE_CONFLICT');
