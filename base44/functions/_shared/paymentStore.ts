@@ -710,29 +710,54 @@ export async function listQueuedPlaidEvents(limit = 50, environment: 'sandbox' |
   return rows.map(row => row.provider_event_id as string);
 }
 
-export async function listPendingPaymentOutbox(limit = 50) {
+export async function claimPendingPaymentOutbox(
+  ownerId: string, limit = 50, leaseSeconds = 90,
+) {
+  if (!Number.isInteger(leaseSeconds) || leaseSeconds < 15 || leaseSeconds > 600) {
+    throw new Error('INVALID_OUTBOX_LEASE');
+  }
   const rows = await database()`
-    SELECT id, base44_transfer_request_id, target_status, attempts
-      FROM avcu_payments.payment_outbox
-     WHERE delivered_at IS NULL ORDER BY id LIMIT ${Math.min(Math.max(limit,1),100)}
+    WITH candidates AS (
+      SELECT id FROM avcu_payments.payment_outbox
+       WHERE delivered_at IS NULL
+         AND available_at <= clock_timestamp()
+         AND (claim_expires_at IS NULL OR claim_expires_at <= clock_timestamp())
+       ORDER BY id
+       FOR UPDATE SKIP LOCKED
+       LIMIT ${Math.min(Math.max(limit,1),100)}
+    )
+    UPDATE avcu_payments.payment_outbox AS outbox
+       SET claim_owner=${ownerId}::uuid,
+           claim_expires_at=clock_timestamp() + make_interval(secs => ${leaseSeconds})
+      FROM candidates
+     WHERE outbox.id=candidates.id
+    RETURNING outbox.id,outbox.base44_transfer_request_id,outbox.target_status,outbox.attempts
   `;
   return rows.map(row => ({id:Number(row.id),transferRequestId:row.base44_transfer_request_id,
     status:row.target_status,attempts:Number(row.attempts)}));
 }
 
-export async function markPaymentOutboxDelivered(id: number): Promise<boolean> {
+export async function markPaymentOutboxDelivered(id: number, ownerId: string): Promise<boolean> {
   const result = await database()`
-    UPDATE avcu_payments.payment_outbox SET delivered_at=clock_timestamp(),last_error=NULL
-     WHERE id=${id} AND delivered_at IS NULL
+    UPDATE avcu_payments.payment_outbox
+       SET delivered_at=clock_timestamp(),last_error=NULL,claim_owner=NULL,claim_expires_at=NULL
+     WHERE id=${id} AND delivered_at IS NULL AND claim_owner=${ownerId}::uuid
+       AND claim_expires_at > clock_timestamp()
   `;
   return result.count === 1;
 }
-export async function recordPaymentOutboxFailure(id: number, message: string): Promise<void> {
-  await database()`
+export async function recordPaymentOutboxFailure(
+  id: number, ownerId: string, message: string,
+): Promise<boolean> {
+  const result = await database()`
     UPDATE avcu_payments.payment_outbox
-       SET attempts=attempts+1,last_error=${message.slice(0,500)}
-     WHERE id=${id} AND delivered_at IS NULL
+       SET attempts=attempts+1,last_error=${message.slice(0,500)},
+           available_at=clock_timestamp() + make_interval(secs => LEAST(300, power(2, LEAST(attempts,8))::integer)),
+           claim_owner=NULL,claim_expires_at=NULL
+     WHERE id=${id} AND delivered_at IS NULL AND claim_owner=${ownerId}::uuid
+       AND claim_expires_at > clock_timestamp()
   `;
+  return result.count === 1;
 }
 
 
