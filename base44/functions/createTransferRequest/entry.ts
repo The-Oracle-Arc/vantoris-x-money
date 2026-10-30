@@ -54,6 +54,28 @@ export default async function(req: Request): Promise<Response> {
         beneficiary_account_last4: accountLast4, memo,
       },
     });
+    const lease = await acquireLease(`outgoing-transfer-projection:${operation.id}`,crypto.randomUUID(),120);
+    if (!lease) return Response.json({error:'This request is being recorded by another worker. Retry with the same idempotency key.'},{status:409});
+    try {
+      const existing = await base44.asServiceRole.entities.TransferRequest.filter({
+        user_id: member.id,
+        idempotency_key: key,
+      });
+      if (existing?.length > 1) {
+        return Response.json({error:'Multiple legacy transfer projections exist for this key. Operations review is required.'},{status:409});
+      }
+      if (existing?.length) {
+        const prior = existing[0];
+        await registerPaymentTransfer({
+          base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
+          sourceAccountRef: sourceAccountId, rail, amountCents: cents,
+        });
+        return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
+      }
+      if (!operation.created && operation.status !== 'accepted') {
+        return Response.json({ error: 'This payment operation is no longer in an initial state. Operations review is required; do not create another key.' }, { status: 409 });
+      }
+
     // Reserve against the transactional ledger before creating the member-facing
     // request. Missing ledger mapping or insufficient available funds fails closed.
     let fundsReservation;
@@ -72,28 +94,6 @@ export default async function(req: Request): Promise<Response> {
       }
       throw error;
     }
-    const lease = await acquireLease(`outgoing-transfer-projection:${operation.id}`,crypto.randomUUID(),120);
-    if (!lease) return Response.json({error:'This request is being recorded by another worker. Retry with the same idempotency key.'},{status:409});
-    try {
-      const existing = await base44.asServiceRole.entities.TransferRequest.filter({
-        user_id: member.id,
-        idempotency_key: key,
-      });
-      if (existing?.length > 1) {
-        return Response.json({error:'Multiple legacy transfer projections exist for this key. Operations review is required.'},{status:409});
-      }
-      if (existing?.length) {
-        const prior = existing[0];
-        await registerPaymentTransfer({
-          base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
-          sourceAccountRef: sourceAccountId, rail, amountCents: cents,
-        });
-        return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, funds_reserved: true, available_after_reservation_cents: fundsReservation.availableAfterCents, execution: 'not_submitted' }, { status: 200 });
-      }
-      if (!operation.created && operation.status !== 'accepted') {
-        return Response.json({ error: 'This payment operation is no longer in an initial state. Operations review is required; do not create another key.' }, { status: 409 });
-      }
-
       const request = await base44.asServiceRole.entities.TransferRequest.create({
         user_id: member.id,
         source_account_id: sourceAccountId,
