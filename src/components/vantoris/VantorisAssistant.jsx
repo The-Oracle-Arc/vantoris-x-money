@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { askOracle, loadOracleHistory } from '@/lib/oracleAssistant';
 import { Send, Loader2, Sparkles, ChevronLeft, Clock, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -77,7 +78,6 @@ export default function VantorisAssistant() {
 
         // Elevated operations are handled by the authorized command workflow, never by an AI agent.
         setMessages([{ role: 'assistant', content: redactCommandSecrets(display) }]);
-        setConversation(null);
         setMessages([
           { role: 'assistant', content: redactCommandSecrets(display) + '\n\n(Session cleared.)' },
         ]);
