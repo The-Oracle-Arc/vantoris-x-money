@@ -83,17 +83,6 @@ const MILITARY_ORGS = [
   { name: 'Help for Heroes', focus: 'Wounded UK personnel', url: 'https://www.helpforheroes.org.uk/' },
 ];
 
-const DEMO_CARDS = [
-  { title: 'Cash balance', detail: 'Large available balance with hide/show, multi-account rollup', credit: 'Member Money home' },
-  { title: 'Deposit · Send · Request', detail: 'Quick actions into Move Money (Zelle-style and transfers)', credit: 'Payments rail' },
-  { title: 'Your accounts', detail: 'Live Account entities—type, mask, balance—not demo fiction', credit: 'Core banking' },
-  { title: 'Activity feed', detail: 'Recent credits and debits from Transaction records', credit: 'Ledger' },
-  { title: 'Debit card tile', detail: 'Card services and last-four when issued', credit: 'Card services' },
-  { title: 'HeroBox impact', detail: 'Care packages, funds, shipping tracked in Operations', credit: 'NGO + military logistics' },
-  { title: 'Investment snapshot', detail: 'Portfolio total value beside cash when present', credit: 'Wealth' },
-  { title: 'Ops isolation', detail: 'Staff dashboards never appear on member routes', credit: 'Security model' },
-];
-
 const PILLARS = [
   {
     icon: Landmark,
@@ -1028,64 +1017,21 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Flight search mock */}
-            <div className="rounded-[24px] border border-slate-200 bg-white shadow-lg overflow-hidden">
-              <div className="bg-navy px-5 py-4 flex items-center gap-2">
+            <div className="rounded-[24px] border border-slate-200 bg-white shadow-lg p-6">
+              <div className="flex items-center gap-2">
                 <Plane size={18} className="text-brass" />
-                <p className="text-white font-semibold text-sm">Flight search preview</p>
+                <p className="text-navy font-semibold text-sm">Live flight data</p>
               </div>
-              <div className="p-5 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl border border-slate-200 bg-[#F4F6F9] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">From</p>
-                    <p className="text-sm font-semibold text-navy mt-0.5">Atlanta (ATL)</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-[#F4F6F9] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">To</p>
-                    <p className="text-sm font-semibold text-navy mt-0.5">London (LHR)</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl border border-slate-200 bg-[#F4F6F9] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Depart</p>
-                    <p className="text-sm font-semibold text-navy mt-0.5">Select date</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-[#F4F6F9] px-3 py-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Return</p>
-                    <p className="text-sm font-semibold text-navy mt-0.5">Select date</p>
-                  </div>
-                </div>
-                <div className="rounded-xl border border-dashed border-slate-200 px-3 py-3 space-y-2">
-                  {[
-                    ['ATL → LHR', '1 stop · 9h 40m', '$612'],
-                    ['ATL → LHR', 'Nonstop · 8h 05m', '$784'],
-                  ].map(([route, meta, price]) => (
-                    <div
-                      key={route + price}
-                      className="flex items-center justify-between rounded-lg bg-white border border-slate-100 px-3 py-2.5"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-navy">{route}</p>
-                        <p className="text-[11px] text-slate-500">{meta}</p>
-                      </div>
-                      <p className="text-sm font-bold text-navy tabular-nums">{price}</p>
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  to="/register?intent=travel"
-                  className="block w-full text-center rounded-full bg-navy text-white py-3 text-sm font-bold hover:bg-navy/90 transition"
-                >
-                  Track flights — open account
-                </Link>
-                <Link
-                  to="/login?intent=travel"
-                  className="block w-full text-center rounded-full border border-slate-200 text-navy py-2.5 text-sm font-semibold hover:bg-slate-50 transition"
-                >
-                  Already a member? Sign in
-                </Link>
-                <p className="text-[11px] text-center text-slate-400">Preview UI — live booking after you sign in</p>
-              </div>
+              <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+                Search and tracking results are requested from connected live data sources. Fares,
+                availability, and booking are shown only when a contracted provider returns verified results.
+              </p>
+              <Link to="/discover/flights" className="mt-5 block w-full text-center rounded-full bg-navy text-white py-3 text-sm font-bold hover:bg-navy/90 transition">
+                Open live flight tracking
+              </Link>
+              <Link to="/login?intent=travel" className="mt-2 block w-full text-center rounded-full border border-slate-200 text-navy py-2.5 text-sm font-semibold hover:bg-slate-50 transition">
+                Sign in
+              </Link>
             </div>
           </div>
         </section>
@@ -1106,87 +1052,19 @@ export default function Landing() {
                   licensed professionals in your area.
                 </p>
               </div>
-              <div className="rounded-[24px] border border-slate-200 bg-[#F4F6F9] p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
+              <div className="rounded-[24px] border border-slate-200 bg-[#F4F6F9] p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
                   <Building2 size={18} className="text-brass" />
-                  <p className="font-semibold text-navy text-sm">Listing preview</p>
+                  <p className="font-semibold text-navy text-sm">Property discovery</p>
                 </div>
-                <div className="rounded-xl bg-gradient-to-br from-slate-300 to-slate-400 h-36 mb-3 flex items-center justify-center text-white/80 text-xs font-medium">
-                  Property photo placeholder
-                </div>
-                <p className="font-bold text-navy text-lg tabular-nums">$425,000</p>
-                <p className="text-sm text-slate-600 mt-0.5">3 bed · 2 bath · 1,840 sq ft</p>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                  <MapPin size={12} /> Sample neighborhood · for illustration
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Property listings, prices, and financing estimates will appear only from connected,
+                  authorized data providers. No sample listing or estimated payment is presented as live market data.
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="rounded-lg bg-white border border-slate-200 px-2 py-2">
-                    <p className="text-slate-400">Est. monthly</p>
-                    <p className="font-semibold text-navy">~$2,410 all-in</p>
-                  </div>
-                  <div className="rounded-lg bg-white border border-slate-200 px-2 py-2">
-                    <p className="text-slate-400">vs your cash</p>
-                    <p className="font-semibold text-navy">Check in app</p>
-                  </div>
-                </div>
-                <Link
-                  to="/register?intent=housing"
-                  className="mt-4 block w-full text-center rounded-full bg-navy text-white py-2.5 text-sm font-bold hover:bg-navy/90"
-                >
-                  Explore property — join Vantoris
+                <Link to="/login?intent=housing" className="mt-5 block w-full text-center rounded-full bg-navy text-white py-2.5 text-sm font-bold hover:bg-navy/90">
+                  Sign in to AVCU
                 </Link>
               </div>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-6">
-              <div className="rounded-2xl border border-slate-200 bg-[#F4F6F9] p-6">
-                <p className="font-bold text-navy flex items-center gap-2 mb-4">
-                  <MapPin size={18} className="text-brass" /> Discovery features
-                </p>
-                <ul className="space-y-3 text-sm text-slate-600">
-                  {[
-                    'Browse for-sale and rental-style inventory where data partners allow',
-                    'Filter by price, beds, property type, and location',
-                    'Map-oriented exploration and saved searches',
-                    'Estimate monthly carrying costs beside membership balances',
-                  ].map((x) => (
-                    <li key={x} className="flex gap-2">
-                      <CheckCircle2 size={16} className="text-brass shrink-0 mt-0.5" />
-                      {x}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-[11px] text-slate-400 mt-4">
-                  Not affiliated with Zillow. Listing accuracy depends on third-party feeds and local law.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-navy text-white p-6">
-                <p className="font-bold flex items-center gap-2 text-brass mb-4">
-                  <BookOpen size={18} /> Tutor: investment properties
-                </p>
-                <ol className="space-y-3 text-sm text-white/85 list-decimal list-inside leading-relaxed">
-                  <li>
-                    <strong className="text-white">Cash flow first.</strong> Rent minus mortgage, tax,
-                    insurance, maintenance, vacancy—not just sticker price.
-                  </li>
-                  <li>
-                    <strong className="text-white">Reserves.</strong> Keep liquid buffers in Vantoris
-                    accounts before taking on leverage.
-                  </li>
-                  <li>
-                    <strong className="text-white">Due diligence.</strong> Inspections, title, HOA,
-                    flood/fire risk, and comps—not social-media “deals.”
-                  </li>
-                  <li>
-                    <strong className="text-white">Tax & entities.</strong> Use a licensed advisor;
-                    Vantoris does not give legal or tax advice.
-                  </li>
-                  <li>
-                    <strong className="text-white">Illiquidity.</strong> Property is slower to exit than
-                    cash or public markets—plan the hold period honestly.
-                  </li>
-                </ol>
               </div>
             </div>
           </div>
@@ -1391,44 +1269,6 @@ export default function Landing() {
             </div>
           </div>
         </section>
-
-        {/* Demo — not first */}
-        <section id="demo" className="scroll-mt-24 max-w-6xl mx-auto px-4 sm:px-6 py-20">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-8 sm:p-10 shadow-sm">
-            <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-brass mb-3">Vantoris preview demo</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-navy">Credits & detail cards—how the product is composed</h2>
-            <p className="mt-3 text-slate-600 max-w-2xl leading-relaxed">
-              Below is a structured walkthrough of the live product surfaces. This is a preview of
-              capabilities and design credits, not a sandbox with fake balances. Sign in to use
-              real member data tied to your account.
-            </p>
-            <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {DEMO_CARDS.map((c) => (
-                <div key={c.title} className="rounded-2xl bg-[#F4F6F9] border border-slate-100 p-5 flex flex-col">
-                  <p className="text-[10px] uppercase tracking-wider text-brass font-bold">{c.credit}</p>
-                  <p className="font-bold text-navy mt-1">{c.title}</p>
-                  <p className="text-sm text-slate-500 mt-2 leading-relaxed flex-1">{c.detail}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/register"
-                className="inline-flex items-center gap-2 rounded-full bg-navy text-white font-semibold px-5 py-3 text-sm"
-              >
-                Create your membership
-                <ArrowRight size={16} />
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 text-navy font-semibold px-5 py-3 text-sm hover:bg-slate-50"
-              >
-                Sign in
-              </Link>
-            </div>
-          </div>
-        </section>
-
 
         {/* Travel */}
                 {/* Property */}
