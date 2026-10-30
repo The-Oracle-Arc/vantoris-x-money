@@ -1,5 +1,11 @@
 export class CircuitBreaker {
-  constructor(opts = {}) {
+  failureThreshold: number;
+  resetTimeoutMs: number;
+  state: 'closed' | 'open' | 'half-open';
+  failureCount: number;
+  lastFailureTime: number | null;
+
+  constructor(opts: { failureThreshold?: number; resetTimeoutMs?: number } = {}) {
     this.failureThreshold = opts.failureThreshold || 5;
     this.resetTimeoutMs = opts.resetTimeoutMs || 30000;
     this.state = 'closed';
@@ -7,7 +13,7 @@ export class CircuitBreaker {
     this.lastFailureTime = null;
   }
 
-  async execute(fn) {
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (this.state === 'open') {
       if (Date.now() - this.lastFailureTime > this.resetTimeoutMs) {
         this.state = 'half-open';
@@ -30,12 +36,15 @@ export class CircuitBreaker {
     }
   }
 
-  getState() {
+  getState(): { state: string; failureCount: number; lastFailureTime: number | null } {
     return { state: this.state, failureCount: this.failureCount, lastFailureTime: this.lastFailureTime };
   }
 }
 
-export async function withRetry(fn, policy = {}) {
+export async function withRetry<T>(
+  fn: (signal: AbortSignal) => Promise<T>,
+  policy: { maxRetries?: number; backoffMs?: number; backoffMultiplier?: number; timeout?: number } = {},
+): Promise<T> {
   const maxRetries = policy.maxRetries || 3;
   const baseDelay = policy.backoffMs || 1000;
   const multiplier = policy.backoffMultiplier || 2;
