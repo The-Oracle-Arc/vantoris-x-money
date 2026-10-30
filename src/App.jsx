@@ -81,6 +81,7 @@ const Organizations = React.lazy(() => import('./pages/operations/Organizations'
 const Finance = React.lazy(() => import('./pages/operations/Finance'));
 const Deposits = React.lazy(() => import('./pages/operations/Deposits'));
 const Transfers = React.lazy(() => import('./pages/operations/Transfers'));
+const PaymentRailOperations = React.lazy(() => import('./pages/operations/PaymentRailOperations'));
 const OperationsDocuments = React.lazy(() => import('./pages/operations/OperationsDocuments'));
 const Cards = React.lazy(() => import('./pages/operations/Cards'));
 const WalletAssignment = React.lazy(() => import('./pages/operations/WalletAssignment'));
@@ -232,6 +233,7 @@ const AuthenticatedApp = () => {
                 <Route path="/operations/approvals" element={<Approvals />} />
                 <Route path="/operations/deposits" element={<Deposits />} />
                 <Route path="/operations/transfers" element={<Transfers />} />
+                <Route path="/operations/payment-rails" element={<PaymentRailOperations />} />
                 <Route path="/operations/documents" element={<OperationsDocuments />} />
                 <Route path="/operations/cards" element={<Cards />} />
                 <Route path="/operations/wallet-assignment" element={<WalletAssignment />} />
