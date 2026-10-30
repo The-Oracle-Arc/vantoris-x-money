@@ -118,3 +118,6 @@ Release gate: keep the submission adapter fail-closed and keep this PR in draft 
 
 ### Current verification status
 These repository changes are committed on `recovery/merge-vantoris-live`. They have not been deployed. GitHub reported no CI status checks for the inspected commits, and no connected test runner was available in this session. Do not treat code commits as a passed security audit or production certification.
+
+- Webhook-triggered Plaid sync also requires the server-only `AVCU_INTERNAL_SYNC_SECRET`; the webhook passes it only through the server-side Base44 function invocation. Do not expose it in browser code or any `VITE_` variable.
+- Protected service-role entity writes are explicitly permitted only through the admin service role for TransferRequest, TransferWebhookEvent, IncomingBankReceipt, PlaidTransferSyncState and AuditLog. Notification RLS permits owner access plus admin service-role delivery. Validate these policies in the deployed Base44 environment; source policy definitions are not proof of deployed enforcement.
