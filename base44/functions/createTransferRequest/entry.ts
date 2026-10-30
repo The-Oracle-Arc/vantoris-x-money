@@ -81,7 +81,7 @@ export default async function(req: Request): Promise<Response> {
 
     // Reserve against the transactional ledger before creating the member-facing
     // request. Missing ledger mapping or insufficient available funds fails closed.
-    let fundsReservation;
+    let fundsReservation: Awaited<ReturnType<typeof reserveOutgoingFunds>>;
     try {
       fundsReservation = await reserveOutgoingFunds({
         operationId: operation.id, accountRef: sourceAccountId,
