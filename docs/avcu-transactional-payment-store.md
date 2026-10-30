@@ -18,7 +18,7 @@ The server-side adapter is wired into outgoing transfer idempotency, Plaid event
 ## Deployment requirements
 
 1. Provision a dedicated managed PostgreSQL database in an AVCU-approved environment.
-2. Store its connection string only as a server-side secret, e.g. `AVCU_LEDGER_DATABASE_URL`. Never expose it through a `VITE_` variable or browser code. Use a separate disposable `AVCU_LEDGER_TEST_DATABASE_URL` for integration tests; the test suite creates append-only fixtures.
+2. Store its connection string only as a server-side secret, e.g. `AVCU_LEDGER_DATABASE_URL`. Never expose it through a `VITE_` variable or browser code. Use a separate disposable `AVCU_LEDGER_TEST_DATABASE_URL` for integration tests; it must point to a dedicated test database with a migration-owner/test-fixture role because the suite seeds ledger-account fixtures and creates append-only test journals. Never point it at production.
 3. Configure `AVCU_ACH_CLEARING_LEDGER_ACCOUNT_ID` and `AVCU_FEDWIRE_CLEARING_LEDGER_ACCOUNT_ID` only after Finance and the sponsor bank approve and provision the corresponding clearing accounts. These IDs are required for settlement journal posting.
 4. Apply `migrations/001_avcu_payment_control_plane.sql` through a reviewed migration process.
 5. Create a dedicated non-superuser login role named avcu_backend through the DBA-approved secret process (NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOINHERIT). Set its password through the managed secret manager, not in source control. Apply migrations/002_avcu_backend_grants.sql to grant only the adapter's required table/function permissions. Do not grant database access to member/browser clients.
