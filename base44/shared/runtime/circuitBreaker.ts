@@ -15,7 +15,7 @@ export class CircuitBreaker {
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (this.state === 'open') {
-      if (Date.now() - this.lastFailureTime > this.resetTimeoutMs) {
+      if (Date.now() - (this.lastFailureTime ?? 0) > this.resetTimeoutMs) {
         this.state = 'half-open';
       } else {
         throw new Error('Circuit breaker is open — service unavailable');
@@ -29,9 +29,7 @@ export class CircuitBreaker {
     } catch (error) {
       this.failureCount++;
       this.lastFailureTime = Date.now();
-      if (this.failureCount >= this.failureThreshold) {
-        this.state = 'open';
-      }
+      if (this.failureCount >= this.failureThreshold) this.state = 'open';
       throw error;
     }
   }
@@ -45,30 +43,35 @@ export async function withRetry<T>(
   fn: (signal: AbortSignal) => Promise<T>,
   policy: { maxRetries?: number; backoffMs?: number; backoffMultiplier?: number; timeout?: number } = {},
 ): Promise<T> {
-  const maxRetries = policy.maxRetries || 3;
-  const baseDelay = policy.backoffMs || 1000;
-  const multiplier = policy.backoffMultiplier || 2;
-  const timeoutMs = policy.timeout || 30000;
-  let lastError;
+  const maxRetries = policy.maxRetries ?? 3;
+  const baseDelay = policy.backoffMs ?? 1000;
+  const multiplier = policy.backoffMultiplier ?? 2;
+  const timeoutMs = policy.timeout ?? 30000;
+  let lastError: unknown;
 
   for (let i = 0; i <= maxRetries; i++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    let abortTimer: ReturnType<typeof setTimeout> | undefined;
+    let timeoutTimer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const result = await Promise.race([
-        fn(controller.signal),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)),
-      ]);
-      clearTimeout(timeoutId);
+      const timeoutPromise = new Promise<T>((_, reject) => {
+        timeoutTimer = setTimeout(() => {
+          controller.abort();
+          reject(new Error('Operation timed out'));
+        }, timeoutMs);
+      });
+      abortTimer = setTimeout(() => controller.abort(), timeoutMs);
+      const result = await Promise.race<T>([fn(controller.signal), timeoutPromise]);
       return result;
     } catch (error) {
-      clearTimeout(timeoutId);
       lastError = error;
       if (i < maxRetries) {
-        const delay = baseDelay * Math.pow(multiplier, i);
-        await new Promise(r => setTimeout(r, delay));
+        await new Promise((resolve) => setTimeout(resolve, baseDelay * Math.pow(multiplier, i)));
       }
+    } finally {
+      if (abortTimer) clearTimeout(abortTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
     }
   }
-  throw lastError;
+  throw lastError instanceof Error ? lastError : new Error('Operation failed after retries');
 }
