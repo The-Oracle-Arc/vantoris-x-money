@@ -83,3 +83,38 @@ Current code status (manual workflow update):
 - Important remaining engineering gate: Base44 updates are currently read-then-update, not transactional compare-and-set. Before live bank submission or settlement, add race-safe conditional state transitions and persistence-level uniqueness for idempotency keys/provider events, then test role/RLS enforcement in the real backend.
 
 Release gate: keep the submission adapter fail-closed and keep this PR in draft until Plaid approves AVCU, production credentials and the correct account-linking/beneficiary flows are configured, race-safe approval persistence is verified, webhook sync/reconciliation passes tests, and an authorized low-value live test is completed under the provider's approved limits.
+
+
+## Additional reliability and incoming-payment controls
+
+### Atomic staff transitions and duplicate submission protection
+- Staff review and approval now use Base44 `updateMany` with the expected prior status as a compare-and-set condition. A concurrent reviewer/approver that loses the state race receives a conflict instead of overwriting the winner.
+- Automated submission first reserves the transfer by changing `approved_awaiting_bank_submission` to `submitting_to_bank`. Only one caller can reserve that state.
+- If the provider call times out or returns an incomplete response after reservation, the request becomes `submission_unknown`. It must be checked against the provider before any retry. Do not reset it to approved just because the caller did not receive a response.
+- If the rail adapter is still the unconfigured fail-closed adapter, the function returns before reserving the transfer; manual operations remain available.
+- Manual submission and manual settlement reconciliation also use expected-status compare-and-set updates.
+
+### Plaid transfer event synchronization
+- A verified `TRANSFER_EVENTS_UPDATE` webhook is only a signal; it does not contain transfer details. The webhook handler now triggers `syncPlaidTransferEvents`, which calls Plaid `/transfer/event/sync` using a durable `after_id` cursor.
+- Sync records authenticated API events as `provider_api_verified=true`; this is deliberately separate from `signature_verified`, which is reserved for the webhook itself.
+- The cursor is advanced only after event records have been persisted. An event that cannot be safely parsed stops cursor advancement so it can be investigated rather than silently skipped.
+- `reconcileBankTransfers` claims each event atomically, checks the transfer ID, amount, currency and rail, ignores older event sequence numbers, and applies status changes with a compare-and-set update.
+- Configure `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` and `AVCU_BANK_PROVIDER_ID=plaid` in the deployed Base44 environment only after Plaid has approved the actual AVCU program. Use production credentials only for an approved production program.
+
+### Incoming ACH and domestic wire receipts
+- Staff can open `/operations/incoming-bank-receipts` from the Operations navigation.
+- An authorized operator records the member, AVCU account, rail, amount, bank-generated reference and protected evidence locator.
+- A separate finance/treasury/compliance/admin verifier confirms or rejects the receipt using independent bank evidence.
+- A verified receipt is evidence that the incoming payment was confirmed; it does not itself post a ledger credit. The account balance is unchanged by this workflow. A separately authorized, balanced ledger-posting workflow is still required.
+
+### Remaining release gates (not completed by repository changes)
+1. **Database uniqueness:** Base44 entity CRUD currently exposes compare-and-set updates but the inspected SDK contract does not expose a transaction or unique-index migration mechanism. Add database-enforced uniqueness for outgoing idempotency keys, incoming bank references/idempotency keys, and provider event IDs before live money movement. Application-level pre-checks alone cannot eliminate concurrent duplicate creates.
+2. **Stale processing recovery:** Add a supervised recovery operation for stuck `processing=true` webhook events and `syncing=true` cursor leases, with a lease timeout and audit trail. Do not blindly replay events that might have reached the bank.
+3. **Production provider setup:** Obtain written sponsor-bank/Plaid approvals, production credentials, approved account-link/tokenization and settlement configuration. No credentials are stored in this repository and no production approval is implied.
+4. **Ledger posting:** Implement a double-entry, idempotent ledger-posting service for verified incoming and settled outgoing activity; reconcile returns, reversals and bank statements before posting/availability changes.
+5. **Permissions/security:** Verify every role and entity RLS/FLS rule in the deployed Base44 environment, including service-role access, member isolation, evidence-reference visibility, and staff separation of duties.
+6. **Automated tests:** Add unit/integration tests for simultaneous approvals, simultaneous submit calls, provider timeout/unknown result, webhook signature failure, cursor replay, event ordering, duplicate bank references, unauthorized staff, cross-member account IDs, and incoming receipt verifier separation.
+7. **End-to-end acceptance:** Run sandbox tests first, then bank-authorized low-value production acceptance tests only after written approvals. Confirm ACH returns, Fedwire cutoffs/recalls, statement reconciliation, alerts and support procedures.
+
+### Current verification status
+These repository changes are committed on `recovery/merge-vantoris-live`. They have not been deployed. GitHub reported no CI status checks for the inspected commits, and no connected test runner was available in this session. Do not treat code commits as a passed security audit or production certification.
