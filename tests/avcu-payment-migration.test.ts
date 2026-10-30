@@ -30,3 +30,12 @@ Deno.test('AVCU incoming receipt entity schema is valid and supports reversal st
   assert(schema.rls.create.user_condition.role==='admin','Incoming receipt writes must be server-only.');
   assert(schema.rls.delete===false,'Incoming receipt deletion must be denied.');
 });
+
+Deno.test('AVCU backend grant migration is least privilege',async()=>{
+  const sql=await Deno.readTextFile('migrations/002_avcu_backend_grants.sql');
+  assert(sql.includes('TO avcu_backend'),'Backend grants must target only the dedicated service role.');
+  assert(sql.includes('GRANT SELECT ON avcu_payments.ledger_accounts'),'Ledger account mapping must be read-only to the adapter.');
+  assert(sql.includes('GRANT SELECT, INSERT ON'), 'Ledger journals and entries must be append-only to the adapter role.');
+  assert(!/GRANT\\s+[^;]*DELETE/i.test(sql),'Adapter role must not receive delete privileges.');
+  assert(!/GRANT\\s+ALL/i.test(sql),'Adapter role must not receive blanket privileges.');
+});
