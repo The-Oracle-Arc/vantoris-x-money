@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the first manual-processing release for Atchison Village Credit Union (AVCU). It is an operations workflow, not a claim that AVCU is a licensed credit union, holds deposits, or has a live payment rail. The legal entity, sponsor-bank relationship, and authority to originate ACH/Fedwire must be verified before any live payment is accepted.
+This document defines the first manual-processing release for America Vanguard Credit Union (AVCU). It is an operations workflow, not a claim that AVCU is a licensed credit union, holds deposits, or has a live payment rail. The legal entity, sponsor-bank relationship, and authority to originate ACH/Fedwire must be verified before any live payment is accepted.
 
 ## Supported request types
 
@@ -54,4 +54,4 @@ Live processing stays disabled until all of the following are documented and tes
 6. Member and operator end-to-end tests completed against bank-approved test procedures.
 7. Security review and production change approval completed.
 
-Until then, the interface may collect clearly labeled non-binding test requests only; it must not debit balances, claim that funds were sent, or generate bank-looking confirmation numbers.
+Until then, disable member-facing ACH and wire submission entirely. Do not expose sandbox/demo payment flows as substitutes for production. Do not debit balances, claim that funds were sent, or generate bank-looking confirmation numbers.
