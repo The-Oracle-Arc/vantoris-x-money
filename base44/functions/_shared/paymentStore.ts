@@ -572,7 +572,7 @@ export async function verifyAndPostIncomingReceipt(input:{
       return {status:'verified_received',journalId:receipt.ledger_journal_id||undefined,duplicate:true};
     }
     if(input.action==='record_return' && receipt.verification_status==='returned') {
-      return {status:'returned',journalId:receipt.ledger_journal_id||undefined,duplicate:true};
+      return {status:'returned',journalId:receipt.reversal_journal_id||receipt.ledger_journal_id||undefined,duplicate:true};
     }
     if(input.action==='reject_receipt' && receipt.verification_status==='rejected') {
       return {status:'rejected',duplicate:true};
@@ -625,7 +625,7 @@ export async function verifyAndPostIncomingReceipt(input:{
         (id,journal_id,ledger_account_id,currency,amount_cents)
         VALUES (${uuid()},${reversalId},${entry.ledger_account_id},${original.currency},${-Number(entry.amount_cents)})`;
       await tx`UPDATE avcu_payments.bank_receipts SET verification_status='returned',
-        verified_by=${input.actorId} WHERE id=${receipt.id}`;
+        verified_by=${input.actorId},reversal_journal_id=${reversalId} WHERE id=${receipt.id}`;
       await tx`INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
         VALUES (${input.actorId},'incoming_receipt_returned','bank_receipt',${receipt.id},
           ${tx.json({reversalJournalId:reversalId,evidenceReference:input.evidenceReference})})`;
