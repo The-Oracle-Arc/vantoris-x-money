@@ -71,7 +71,7 @@ export default async function(req: Request): Promise<Response> {
         await release('Transfer match is ambiguous or amount/currency/rail did not match');
         continue;
       }
-      if (!['approved_awaiting_bank_submission', 'submitted_to_bank', 'pending_settlement', 'settled', 'returned', 'failed'].includes(transfer.status)) {
+      if (!['approved_awaiting_bank_submission', 'submitting_to_bank', 'submission_unknown', 'submitted_to_bank', 'pending_settlement', 'settled', 'returned', 'failed', 'cancelled'].includes(transfer.status)) {
         held++;
         await release('Transfer state is not eligible for this provider event');
         continue;
