@@ -213,6 +213,7 @@ export default function AgentChat({
       setConversations((previous) => [updated, ...previous.filter(item => item.id !== updated.id)]);
       setActiveConv(updated);
       setMessages(updated.messages);
+      setLoading(false);
 
     } catch (e) {
       console.error('Send message error:', e);
