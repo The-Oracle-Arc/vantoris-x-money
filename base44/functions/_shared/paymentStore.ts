@@ -165,6 +165,17 @@ export async function reserveOutgoingFunds(input:{
   return {holdId:row.hold_id,availableAfterCents:Number(row.available_after_cents),duplicate:row.duplicate};
 }
 
+export async function hasActiveOutgoingFundsHold(input:{idempotencyKey:string;amountCents:number}):Promise<boolean> {
+  const rows=await database()`
+    SELECT h.id FROM avcu_payments.payment_operations o
+    JOIN avcu_payments.outgoing_funds_holds h ON h.operation_id=o.id
+     WHERE o.operation_type='outgoing_transfer_request'
+       AND o.idempotency_key=${requireText(input.idempotencyKey,'idempotency key',200)}
+       AND h.status='active' AND h.amount_cents=${input.amountCents}
+  `;
+  return rows.length===1;
+}
+
 export async function transitionOutgoingFundsHold(input:{
   operationId:string; status:'captured'|'released'; actorId:string; reason?:string;
 }):Promise<boolean> {
