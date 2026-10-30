@@ -117,6 +117,37 @@
     },
     "reconciled_at": {
       "type": "string"
+    },
+    "manual_processing": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only when an authorized operator manually submitted this request through an approved bank portal."
+    },
+    "manual_operator_user_id": {
+      "type": "string"
+    },
+    "manual_submitted_at": {
+      "type": "string"
+    },
+    "manual_evidence_reference": {
+      "type": "string",
+      "description": "Protected evidence locator; do not store bank login credentials or public document URLs."
+    },
+    "manual_operator_note": {
+      "type": "string"
+    },
+    "manual_reconciled_by_user_id": {
+      "type": "string"
+    },
+    "manual_reconciled_at": {
+      "type": "string"
+    },
+    "manual_reconciliation_evidence_reference": {
+      "type": "string",
+      "description": "Protected evidence locator used by a second authorized staff member."
+    },
+    "manual_reconciliation_note": {
+      "type": "string"
     }
   },
   "required": [
