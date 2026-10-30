@@ -33,6 +33,12 @@ Deno.test('AVCU outgoing funds holds serialize concurrent spending and only allo
   assert(sql.includes('GRANT EXECUTE ON FUNCTION avcu_payments.reserve_outgoing_funds'),'Backend role must execute the reservation function.');
 });
 
+Deno.test('AVCU payment audit is append-only',async()=>{
+  const sql=await Deno.readTextFile('migrations/004_avcu_payment_audit_hardening.sql');
+  assert(sql.includes('BEFORE UPDATE OR DELETE ON avcu_payments.payment_audit'),'Audit mutation trigger is missing.');
+  assert(sql.includes('REVOKE UPDATE, DELETE, TRUNCATE ON avcu_payments.payment_audit FROM avcu_backend'),'Backend audit mutation privileges must be revoked.');
+});
+
 Deno.test('AVCU incoming receipt entity schema is valid and supports reversal state',async()=>{
   const schema=JSON.parse(await Deno.readTextFile('base44/entities/IncomingBankReceipt.jsonc'));
   assert(schema.properties.transactional_receipt_id,'Missing PostgreSQL receipt link.');
