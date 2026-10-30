@@ -165,6 +165,17 @@ export async function reserveOutgoingFunds(input:{
   return {holdId:row.hold_id,availableAfterCents:Number(row.available_after_cents),duplicate:row.duplicate};
 }
 
+export async function releaseOutgoingFundsHoldForTransfer(input:{memberId:string;clientIdempotencyKey:string;actorId:string;reason:string}):Promise<boolean> {
+  const key=`${requireText(input.memberId,'member ID',160)}:${requireText(input.clientIdempotencyKey,'client idempotency key',160)}`;
+  const [operation]=await database()`
+    SELECT id FROM avcu_payments.payment_operations
+     WHERE operation_type='outgoing_transfer_request' AND idempotency_key=${key}
+  `;
+  if(!operation) return false;
+  return await transitionOutgoingFundsHold({operationId:operation.id,status:'released',
+    actorId:input.actorId,reason:input.reason});
+}
+
 export async function recordPaymentAudit(input:{actorId:string;action:string;objectType:string;objectId:string;details:Record<string,unknown>}):Promise<void> {
   await database()`
     INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
