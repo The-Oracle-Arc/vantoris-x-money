@@ -13,6 +13,7 @@ import {
   acquireLease, releaseLease, renewLease, claimPaymentOperation,
   ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent,
   recordIncomingReceipt, linkIncomingReceipt, verifyAndPostIncomingReceipt, closePaymentStore,
+  reserveOutgoingFunds, transitionOutgoingFundsHold,
 } from '../base44/functions/_shared/paymentStore.ts';
 
 Deno.test('AVCU transfer requester cannot act as reviewer, approver, or submitter',()=>{
@@ -86,6 +87,35 @@ Deno.test({
         (${accountA},${'test:'+accountA},'member_deposit'),
         (${accountB},${'test:'+accountB},'bank_clearing')`;
       try {
+        // Seed a 5,000-cent posted member balance; negative ledger entries are credits.
+        await postBalancedJournal({sourceType:'test_opening',sourceId:key,idempotencyKey:`opening-${key}`,
+          description:'Integration test opening balance',entries:[
+            {ledgerAccountId:accountA,amountCents:-5000},{ledgerAccountId:accountB,amountCents:5000}
+          ]});
+        const holdOperationA=await claimPaymentOperation({operationType:'outgoing_transfer_request',
+          idempotencyKey:`hold-a-${key}`,request:{amountCents:4000,account:accountA}});
+        const holdOperationB=await claimPaymentOperation({operationType:'outgoing_transfer_request',
+          idempotencyKey:`hold-b-${key}`,request:{amountCents:4000,account:accountA}});
+        const holdAttempts=await Promise.allSettled([
+          reserveOutgoingFunds({operationId:holdOperationA.id,accountRef:`test:${accountA}`,
+            amountCents:4000,actorId:'integration-test'}),
+          reserveOutgoingFunds({operationId:holdOperationB.id,accountRef:`test:${accountA}`,
+            amountCents:4000,actorId:'integration-test'}),
+        ]);
+        assertEquals(holdAttempts.filter(x=>x.status==='fulfilled').length,1,
+          'Only one concurrent reservation may consume the 5,000-cent available balance.');
+        assertEquals(holdAttempts.filter(x=>x.status==='rejected').length,1);
+        const winningOperation=holdAttempts[0].status==='fulfilled'?holdOperationA:holdOperationB;
+        const winningHold=await reserveOutgoingFunds({operationId:winningOperation.id,
+          accountRef:`test:${accountA}`,amountCents:4000,actorId:'integration-test'});
+        assertEquals(winningHold.duplicate,true);
+        assertEquals(winningHold.availableAfterCents,1000);
+        assertEquals(await transitionOutgoingFundsHold({operationId:winningOperation.id,
+          status:'released',actorId:'integration-test',reason:'Test release'}),true);
+        const afterRelease=await reserveOutgoingFunds({operationId:winningOperation.id,
+          accountRef:`test:${accountA}`,amountCents:4000,actorId:'integration-test'}).catch(()=>null);
+        assertEquals(afterRelease,null,'A finalized hold must not be reactivated by retry.');
+
         const journal=await postBalancedJournal({sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
           description:'Integration test journal',entries:[
             {ledgerAccountId:accountA,amountCents:1000},{ledgerAccountId:accountB,amountCents:-1000}
