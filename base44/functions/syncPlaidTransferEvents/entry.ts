@@ -13,8 +13,11 @@ export default async function(req: Request): Promise<Response> {
   let lease: Awaited<ReturnType<typeof acquireLease>> = null;
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => null);
+    const internalSecret = Deno.env.get('AVCU_INTERNAL_SYNC_SECRET');
+    const trustedInternalCall = !!internalSecret && body?.internal_secret === internalSecret;
     const staff = await base44.auth.me().catch(() => null);
-    if (!staff?.id || !ROLES.has(staff.role)) {
+    if (!trustedInternalCall && (!staff?.id || !ROLES.has(staff.role))) {
       return Response.json({ error: 'Authorized finance or treasury staff only.' }, { status: 403 });
     }
 
