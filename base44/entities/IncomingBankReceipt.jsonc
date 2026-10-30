@@ -72,7 +72,8 @@
       "type": "string",
       "enum": [
         "not_posted",
-        "posted"
+        "posted",
+        "reversed"
       ],
       "default": "not_posted"
     },
