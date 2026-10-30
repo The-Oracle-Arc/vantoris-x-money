@@ -84,29 +84,15 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const base44 = createClientFromRequest(req);
-    const eventId = await sha256Hex(rawBody);
-    const existing = await base44.asServiceRole.entities.TransferWebhookEvent.filter({
-      provider_id: 'plaid', provider_event_id: eventId,
-    });
-    if (existing?.length) return Response.json({ accepted: true, duplicate: true }, { status: 200 });
-
-    await base44.asServiceRole.entities.TransferWebhookEvent.create({
-      provider_id: 'plaid',
-      provider_event_id: eventId,
-      event_type: `${webhookType}.${webhookCode}`,
-      webhook_type: webhookType,
-      webhook_code: webhookCode,
-      item_id: itemId,
-      environment,
-      signature_verified: true,
-      processed: false,
-      received_at: new Date().toISOString(),
-    });
+    // Plaid's webhook contains only a notification. The authoritative event details
+    // must be fetched from /transfer/event/sync; never treat this ping as a payment event.
+    const sync = await base44.asServiceRole.functions.invoke('syncPlaidTransferEvents', {});
     return Response.json({
       accepted: true,
-      queued: true,
-      message: 'Plaid signature verified. Transfer event sync is required before updating any payment status.',
-    }, { status: 202 });
+      sync_triggered: true,
+      sync,
+      message: 'Webhook signature verified and authoritative Plaid event sync triggered.',
+    }, { status: 200 });
   } catch {
     return Response.json({ error: 'Plaid webhook could not be accepted.' }, { status: 400 });
   }
