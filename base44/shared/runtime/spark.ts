@@ -1,6 +1,6 @@
 import { eventBus } from './eventBus.ts';
 import { logger } from './logger.ts';
-import { CircuitBreaker, withRetry } from './circuitBreaker.ts';
+import { CircuitBreaker } from './circuitBreaker.ts';
 
 export function createSpark() {
   const breaker = new CircuitBreaker({ failureThreshold: 3, resetTimeoutMs: 60000 });
@@ -54,13 +54,13 @@ export function createSpark() {
       });
 
       try {
-        const result = await breaker.execute(() =>
-          withRetry(() => services.model.invoke({
-            prompt: fullPrompt,
-            model,
-            responseJsonSchema: responseSchema || undefined,
-          }), { maxRetries: 2, backoffMs: 2000, timeout: 60000 })
-        );
+        // The gateway already performs provider fallback and usage reservation.
+        // Do not retry the whole gateway request here: that would reserve usage again.
+        const result = await breaker.execute(() => services.model.invoke({
+          prompt: fullPrompt,
+          model,
+          responseJsonSchema: responseSchema || undefined,
+        }));
 
         eventBus.publish({
           type: 'response', source: 'spark', target: 'oracle',
