@@ -159,6 +159,10 @@
     },
     "submission_error": {
       "type": "string"
+    },
+    "webhook_last_event_sequence": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "required": [
