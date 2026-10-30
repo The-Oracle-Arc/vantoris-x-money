@@ -1,6 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import {
+  deriveProviderIdempotencyKey, registerPaymentTransfer,
+  setPaymentOperationStatus, setProviderTransferReference,
+} from '../_shared/paymentStore.ts';
+import { assertStaffIsNotRequester } from '../_shared/paymentAuthorization.ts';
 import { getTransferRailAdapter } from '../_shared/transferRails.ts';
-import { registerPaymentTransfer, setProviderTransferReference, setPaymentOperationStatus, deriveProviderIdempotencyKey } from '../_shared/paymentStore.ts';
 
 const SUBMIT_ROLES = new Set(['admin', 'administrator', 'super_administrator', 'finance_officer', 'treasury_officer']);
 export default async function(req: Request): Promise<Response> {
@@ -17,6 +21,11 @@ export default async function(req: Request): Promise<Response> {
 
     const transfer = await base44.asServiceRole.entities.TransferRequest.get(requestId);
     if (!transfer) return Response.json({ error: 'Transfer request not found.' }, { status: 404 });
+    try {
+      assertStaffIsNotRequester(staff.id, transfer.user_id);
+    } catch {
+      return Response.json({ error: 'Separation of duties: the requester cannot submit their own transfer.' }, { status: 403 });
+    }
     if (transfer.status !== 'approved_awaiting_bank_submission') {
       return Response.json({ error: 'Transfer has not completed the required review approvals.' }, { status: 409 });
     }
@@ -43,7 +52,6 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Bank rail adapter is not configured. No bank request was sent and the request remains approved for manual handling.' }, { status: 503 });
     }
 
-    // Reserve this request atomically before any network call. A second caller cannot submit it.
     const reservation = await base44.asServiceRole.entities.TransferRequest.updateMany(
       { id: transfer.id, status: 'approved_awaiting_bank_submission' },
       { $set: { status: 'submitting_to_bank', submission_started_at: new Date().toISOString(), submission_operator_user_id: staff.id } },
@@ -79,7 +87,6 @@ export default async function(req: Request): Promise<Response> {
         memo: transfer.memo,
       });
     } catch {
-      // Network/provider timeouts can occur after acceptance. Never reopen for blind retry.
       await Promise.allSettled([
         base44.asServiceRole.entities.TransferRequest.updateMany(
           { id: transfer.id, status: 'submitting_to_bank' },
