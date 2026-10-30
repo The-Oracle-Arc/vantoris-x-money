@@ -328,8 +328,8 @@ export default function Landing() {
                   Sign in
                 </Link>
                 <a
-                  href="#card-gallery"
-                  onClick={(e) => onNavClick(e, '#card-gallery')}
+                  href="#service-availability"
+                  onClick={(e) => onNavClick(e, '#service-availability')}
                   className="inline-flex items-center gap-2 rounded-full text-white/70 font-medium px-4 py-3.5 text-[14px] hover:text-white transition"
                 >
                   <Play size={16} className="text-brass" />
@@ -365,7 +365,7 @@ export default function Landing() {
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between gap-4 font-mono text-[10px] sm:text-[11px] text-white/45 uppercase tracking-[0.14em]">
               <span>Statements · member tools</span>
               <span>Transfers · dedicated tools</span>
-              <span>Cards · provider availability</span>
+              <span>Provider availability</span>
               <span>AI · member + ops</span>
               <span>HeroBox · impact tools</span>
             </div>
