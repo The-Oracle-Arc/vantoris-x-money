@@ -8,8 +8,6 @@ import { PolicyRegistry } from '../registries/PolicyRegistry.ts';
 import { PromptRegistry } from '../registries/PromptRegistry.ts';
 import { logger } from './logger.ts';
 
-let bootPromise;
-
 function createServices(base44, request) {
   const authorization = request?.headers?.get?.('authorization') || '';
   const gatewayUrl = Deno.env.get('AVCU_AI_GATEWAY_URL') || '';
@@ -78,26 +76,22 @@ function createServices(base44, request) {
 }
 
 export async function boot(base44, request) {
-  if (bootPromise) return bootPromise;
-  bootPromise = Promise.resolve().then(() => {
-    const services = createServices(base44, request);
-    const registries = {
-      model: ModelRegistry,
-      prompt: PromptRegistry,
-      policy: PolicyRegistry,
-    };
-    const guardian = createGuardian(registries);
-    const nexus = createNexus();
-    const spark = createSpark();
-    const orbit = createOrbit(base44);
-    const oracle = createOracle(services, registries, guardian, nexus, spark, orbit);
-    const runtime = { oracle, guardian, nexus, spark, orbit };
-    const stages = ['services', 'registries', 'guardian', 'nexus', 'spark', 'orbit', 'oracle'];
-    logger.info('AVCU Oracle runtime initialized', { stages });
-    return { services, runtime, stages };
-  }).catch(error => {
-    bootPromise = null;
-    throw error;
-  });
-  return bootPromise;
+  // Build request-scoped services so one member's bearer token is never cached
+  // or reused by another invocation. Module instances may be cached by Deno,
+  // but authentication context must remain per request.
+  const services = createServices(base44, request);
+  const registries = {
+    model: ModelRegistry,
+    prompt: PromptRegistry,
+    policy: PolicyRegistry,
+  };
+  const guardian = createGuardian(registries);
+  const nexus = createNexus();
+  const spark = createSpark();
+  const orbit = createOrbit(base44);
+  const oracle = createOracle(services, registries, guardian, nexus, spark, orbit);
+  const runtime = { oracle, guardian, nexus, spark, orbit };
+  const stages = ['services', 'registries', 'guardian', 'nexus', 'spark', 'orbit', 'oracle'];
+  logger.info('AVCU Oracle runtime initialized', { stages });
+  return { services, runtime, stages };
 }
