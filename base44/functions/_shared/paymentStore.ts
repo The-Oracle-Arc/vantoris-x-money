@@ -430,6 +430,14 @@ export async function processPlaidProviderEvent(input: {
             WHERE id=${event.id}`;
           return { status:'held', reason:'Member or bank-clearing ledger account mapping is missing.' };
         }
+        // Serialize every balance mutation against reservations on these accounts.
+        for (const accountId of [String(memberLedger.id), String(clearing.id)].sort()) {
+          const [locked] = await tx`
+            SELECT id FROM avcu_payments.ledger_accounts
+             WHERE id=${accountId} AND currency=${transfer.currency} FOR UPDATE
+          `;
+          if (!locked) throw new Error('SETTLEMENT_LEDGER_ACCOUNT_LOCK_FAILED');
+        }
         journalId = uuid();
         await tx`
           INSERT INTO avcu_payments.ledger_journals
@@ -549,6 +557,31 @@ export async function postBalancedJournal(input: {
     throw new Error('UNBALANCED_JOURNAL');
   }
   return await database().begin(async tx => {
+    // Lock accounts in stable order so ledger writes serialize with outgoing holds.
+    const grouped = new Map<string, number>();
+    for (const entry of input.entries) {
+      grouped.set(entry.ledgerAccountId, (grouped.get(entry.ledgerAccountId) ?? 0) + entry.amountCents);
+    }
+    const accountTypes = new Map<string, string>();
+    for (const accountId of [...grouped.keys()].sort()) {
+      const [account] = await tx`
+        SELECT id, account_type FROM avcu_payments.ledger_accounts
+         WHERE id=${accountId} AND currency=${currency} FOR UPDATE
+      `;
+      if (!account) throw new Error('LEDGER_ACCOUNT_NOT_FOUND_OR_CURRENCY_MISMATCH');
+      accountTypes.set(accountId, String(account.account_type));
+    }
+    // A normal debit may not consume cents already reserved by pending transfers.
+    for (const [accountId, netAmount] of grouped) {
+      if (accountTypes.get(accountId) !== 'member_deposit') continue;
+      const [balance] = await tx`
+        SELECT
+          -COALESCE((SELECT sum(amount_cents) FROM avcu_payments.ledger_entries WHERE ledger_account_id=${accountId}),0) AS posted_cents,
+          COALESCE((SELECT sum(amount_cents) FROM avcu_payments.outgoing_funds_holds WHERE ledger_account_id=${accountId} AND status='active'),0) AS held_cents
+      `;
+      const availableAfter = Number(balance.posted_cents) - Number(balance.held_cents) - netAmount;
+      if (availableAfter < 0) throw new Error('INSUFFICIENT_AVAILABLE_FUNDS_AFTER_HOLDS');
+    }
     const id = uuid();
     const rows = await tx`
       INSERT INTO avcu_payments.ledger_journals
@@ -589,6 +622,19 @@ export async function reverseJournal(input: {
       if (prior.idempotency_key === input.idempotencyKey) return { journalId: prior.id, duplicate: true };
       throw new Error('JOURNAL_ALREADY_REVERSED_WITH_DIFFERENT_KEY');
     }
+    const entries = await tx`
+      SELECT ledger_account_id, amount_cents FROM avcu_payments.ledger_entries
+       WHERE journal_id=${original.id}
+    `;
+    if (entries.length < 2) throw new Error('ORIGINAL_JOURNAL_INVALID');
+    const accountIds = [...new Set(entries.map((entry) => String(entry.ledger_account_id)))].sort();
+    for (const accountId of accountIds) {
+      const [locked] = await tx`
+        SELECT id FROM avcu_payments.ledger_accounts
+         WHERE id=${accountId} AND currency=${original.currency} FOR UPDATE
+      `;
+      if (!locked) throw new Error('REVERSAL_LEDGER_ACCOUNT_LOCK_FAILED');
+    }
     const reversalId = uuid();
     await tx`
       INSERT INTO avcu_payments.ledger_journals
@@ -596,11 +642,6 @@ export async function reverseJournal(input: {
       VALUES (${reversalId}, 'reversal', ${original.id}, ${input.idempotencyKey},
         ${original.currency}, ${input.reason}, ${original.id})
     `;
-    const entries = await tx`
-      SELECT ledger_account_id, amount_cents FROM avcu_payments.ledger_entries
-       WHERE journal_id=${original.id}
-    `;
-    if (entries.length < 2) throw new Error('ORIGINAL_JOURNAL_INVALID');
     for (const entry of entries) {
       await tx`INSERT INTO avcu_payments.ledger_entries
         (id, journal_id, ledger_account_id, currency, amount_cents)
@@ -721,6 +762,11 @@ export async function verifyAndPostIncomingReceipt(input:{
         WHERE id=${input.clearingLedgerAccountId} AND account_type='bank_clearing'
           AND currency=${receipt.currency}`;
       if(!memberLedger||!clearing) throw new Error('RECEIPT_LEDGER_ACCOUNT_MAPPING_MISSING');
+      for (const accountId of [String(memberLedger.id), String(clearing.id)].sort()) {
+        const [locked] = await tx`SELECT id FROM avcu_payments.ledger_accounts
+          WHERE id=${accountId} AND currency=${receipt.currency} FOR UPDATE`;
+        if (!locked) throw new Error('RECEIPT_LEDGER_ACCOUNT_LOCK_FAILED');
+      }
       const journalId=uuid();
       await tx`INSERT INTO avcu_payments.ledger_journals
         (id,source_type,source_id,idempotency_key,currency,description)
@@ -751,14 +797,19 @@ export async function verifyAndPostIncomingReceipt(input:{
       const [original]=await tx`SELECT currency FROM avcu_payments.ledger_journals
         WHERE id=${receipt.ledger_journal_id} FOR UPDATE`;
       if(!original) throw new Error('RECEIPT_JOURNAL_NOT_FOUND');
+      const entries=await tx`SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
+        WHERE journal_id=${receipt.ledger_journal_id}`;
+      for (const accountId of [...new Set(entries.map((entry) => String(entry.ledger_account_id)))].sort()) {
+        const [locked] = await tx`SELECT id FROM avcu_payments.ledger_accounts
+          WHERE id=${accountId} AND currency=${original.currency} FOR UPDATE`;
+        if (!locked) throw new Error('RECEIPT_REVERSAL_ACCOUNT_LOCK_FAILED');
+      }
       const reversalId=uuid();
       await tx`INSERT INTO avcu_payments.ledger_journals
         (id,source_type,source_id,idempotency_key,currency,description,reversal_of)
         VALUES (${reversalId},'incoming_receipt_return',${receipt.ledger_journal_id},
           ${'incoming-return:'+receipt.id},${original.currency},'Reverse returned incoming bank receipt',
           ${receipt.ledger_journal_id})`;
-      const entries=await tx`SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
-        WHERE journal_id=${receipt.ledger_journal_id}`;
       for(const entry of entries) await tx`INSERT INTO avcu_payments.ledger_entries
         (id,journal_id,ledger_account_id,currency,amount_cents)
         VALUES (${uuid()},${reversalId},${entry.ledger_account_id},${original.currency},${-Number(entry.amount_cents)})`;
