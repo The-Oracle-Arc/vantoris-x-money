@@ -17,10 +17,10 @@ function write(level, message, metadata = {}) {
 }
 
 export const logger = Object.freeze({
-  debug: (message, metadata) => write('debug', message, metadata),
-  info: (message, metadata) => write('info', message, metadata),
-  warn: (message, metadata) => write('warn', message, metadata),
-  error: (message, metadata) => write('error', message, metadata),
+  debug: (message, metadata = {}) => write('debug', message, metadata),
+  info: (message, metadata = {}) => write('info', message, metadata),
+  warn: (message, metadata = {}) => write('warn', message, metadata),
+  error: (message, metadata = {}) => write('error', message, metadata),
 });
 
 export function createTracer(traceId) {
