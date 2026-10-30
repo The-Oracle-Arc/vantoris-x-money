@@ -48,7 +48,8 @@ function createServices(base44, request) {
         return base44.asServiceRole.entities.AIMessage.create({ thread_id: threadId, user_id: userId, role, body: String(body).slice(0, 20000) });
       },
       async getRecentHistory(threadId, limit = 10) {
-        const rows = await base44.asServiceRole.entities.AIMessage.filter({ thread_id: threadId }, '-created_date', Math.min(20, Math.max(1, limit)));\n        return (rows || []).map(row => ({ sender: row.role, body: row.body }));
+        const rows = await base44.asServiceRole.entities.AIMessage.filter({ thread_id: threadId }, '-created_date', Math.min(20, Math.max(1, limit)));
+        return (rows || []).map(row => ({ sender: row.role, body: row.body }));
       },
     },
     metrics: {
