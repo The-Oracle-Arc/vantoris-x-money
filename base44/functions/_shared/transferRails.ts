@@ -17,7 +17,8 @@ export interface BankTransferInstruction {
 
 export interface BankSubmission {
   providerId: string;
-  bankReference: string;
+  providerTransferId: string;
+  bankReference?: string;
   acceptedAt: string;
   status: 'submitted' | 'pending';
 }
