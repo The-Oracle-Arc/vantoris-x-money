@@ -11,17 +11,24 @@ export default async function(req) {
     const body = await req.json().catch(() => ({}));
     const { message, context, action = 'process' } = body;
 
+    // Health diagnostics expose internal service state; restrict them to platform administrators.
+    if (action === 'health' && !['admin', 'administrator', 'super_administrator', 'it_administrator'].includes(user.role)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Boot the runtime (cached after first call)
     const { services, runtime, stages: bootStages } = await boot(base44);
 
-    // Health check endpoint
     if (action === 'health') {
       const health = await services.health.runAll();
       return Response.json({ status: 'ok', health, stages: bootStages || [] });
     }
 
-    if (!message) {
+    if (typeof message !== 'string' || !message.trim()) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
+    }
+    if (message.length > 4000) {
+      return Response.json({ error: 'Message exceeds the 4,000 character limit' }, { status: 413 });
     }
 
     // Build the AI request through the Oracle pipeline:
