@@ -149,6 +149,34 @@ export async function registerPaymentTransfer(input: {
 }
 
 
+/** Reserve funds against the ledger's posted member balance. The SQL function
+ * locks the member ledger account row, so concurrent outgoing requests cannot
+ * both spend the same available cents. */
+export async function reserveOutgoingFunds(input:{
+  operationId:string; accountRef:string; amountCents:number; actorId:string;
+}):Promise<{holdId:string;availableAfterCents:number;duplicate:boolean}> {
+  if(!Number.isSafeInteger(input.amountCents)||input.amountCents<1) throw new Error('INVALID_FUNDS_RESERVATION_AMOUNT');
+  const [row]=await database()`
+    SELECT * FROM avcu_payments.reserve_outgoing_funds(
+      ${input.operationId}::uuid,${requireText(input.accountRef,'account reference',160)},
+      ${input.amountCents},${requireText(input.actorId,'actor ID',160)}
+    )
+  `;
+  return {holdId:row.hold_id,availableAfterCents:Number(row.available_after_cents),duplicate:row.duplicate};
+}
+
+export async function transitionOutgoingFundsHold(input:{
+  operationId:string; status:'captured'|'released'; actorId:string; reason?:string;
+}):Promise<boolean> {
+  const [row]=await database()`
+    SELECT avcu_payments.transition_outgoing_funds_hold(
+      ${input.operationId}::uuid,${input.status},
+      ${requireText(input.actorId,'actor ID',160)},${input.reason||null}
+    ) AS transitioned
+  `;
+  return row?.transitioned===true;
+}
+
 export async function setPaymentOperationStatus(idempotencyKey:string,status:'accepted'|'processing'|'unknown'|'succeeded'|'failed'|'reversed'):Promise<void> {
   const result=await database()`
     UPDATE avcu_payments.payment_operations
@@ -360,6 +388,22 @@ export async function processPlaidProviderEvent(input: {
         SET status='settled', settled_journal_id=COALESCE(settled_journal_id,${journalId}),
             last_event_sequence=${event.event_sequence}, updated_at=clock_timestamp()
         WHERE id=${transfer.id}`;
+      await tx`
+        UPDATE avcu_payments.outgoing_funds_holds h
+           SET status='captured',updated_at=clock_timestamp()
+          FROM avcu_payments.payment_operations o
+         WHERE o.operation_type='outgoing_transfer_request'
+           AND o.idempotency_key=${transfer.idempotency_key}
+           AND h.operation_id=o.id AND h.status='active'
+      `;
+      await tx`
+        INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+        SELECT 'plaid-provider','outgoing_funds_captured','payment_operation',o.id::text,
+          jsonb_build_object('transfer_id',${transfer.id},'journal_id',${journalId})
+          FROM avcu_payments.payment_operations o
+         WHERE o.operation_type='outgoing_transfer_request'
+           AND o.idempotency_key=${transfer.idempotency_key}
+      `;
     } else if (rawType === 'returned') {
       nextStatus = 'returned';
       if (transfer.settled_journal_id) {
@@ -394,6 +438,17 @@ export async function processPlaidProviderEvent(input: {
       await tx`UPDATE avcu_payments.payment_transfers SET status=${nextStatus},
         last_event_sequence=${event.event_sequence}, updated_at=clock_timestamp()
         WHERE id=${transfer.id}`;
+      if (['failed','cancelled'].includes(nextStatus)) {
+        await tx`
+          UPDATE avcu_payments.outgoing_funds_holds h
+             SET status='released',release_reason='Provider reported transfer failed or cancelled',
+                 updated_at=clock_timestamp()
+            FROM avcu_payments.payment_operations o
+           WHERE o.operation_type='outgoing_transfer_request'
+             AND o.idempotency_key=${transfer.idempotency_key}
+             AND h.operation_id=o.id AND h.status='active'
+        `;
+      }
     } else {
       await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
         WHERE id=${event.id}`;
