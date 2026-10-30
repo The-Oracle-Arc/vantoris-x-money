@@ -2,5 +2,5 @@
   "name":"AssistantRecommendation","type":"object",
   "properties":{"workspace_id":{"type":"string"},"user_id":{"type":"string"},"specialist":{"type":"string"},"member_message":{"type":"string"},"summary":{"type":"string"},"supporting_evidence":{"type":"string"},"confidence_level":{"type":"string","enum":["low","medium","high"]},"potential_risks":{"type":"string"},"applicable_policies":{"type":"string"},"recommended_action":{"type":"string"},"required_approver":{"type":"string"},"status":{"type":"string","enum":["pending","escalated","approved","rejected"],"default":"pending"},"is_action_impacting":{"type":"boolean","default":true},"escalation_reason":{"type":"string"},"collaboration_notes":{"type":"string"}},
   "required":["workspace_id","user_id","specialist","summary","status"],
-  "rls":{"create":false,"read":{"user_condition":{"role":"super_administrator"}},"update":false,"delete":false}
+  "rls":{"create":false,"read":{"$or":[{"data.user_id":"{{user.id}}"},{"user_condition":{"role":"admin"}},{"user_condition":{"role":"administrator"}},{"user_condition":{"role":"super_administrator"}},{"user_condition":{"role":"it_administrator"}},{"user_condition":{"role":"compliance_officer"}},{"user_condition":{"role":"auditor"}}]},"update":false,"delete":false}
 }
