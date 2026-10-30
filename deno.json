@@ -1,8 +1,0 @@
-{
-  "nodeModulesDir": "auto",
-  "compilerOptions": {
-    "strict": false,
-    "noImplicitAny": false,
-    "useUnknownInCatchVariables": false
-  }
-}
