@@ -328,7 +328,7 @@ $$;
 CREATE OR REPLACE FUNCTION avcu_payments.audit_worker_lease_change()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $
+AS $fn$
 DECLARE action_name text;
 BEGIN
   IF TG_OP = 'INSERT' THEN
@@ -347,7 +347,7 @@ BEGIN
       'previous_fencing_token',CASE WHEN TG_OP='UPDATE' THEN OLD.fencing_token ELSE NULL END));
   RETURN NEW;
 END;
-$;
+$fn$;
 
 DROP TRIGGER IF EXISTS worker_lease_audit ON avcu_payments.worker_leases;
 CREATE TRIGGER worker_lease_audit
