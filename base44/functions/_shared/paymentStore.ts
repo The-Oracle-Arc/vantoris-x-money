@@ -513,6 +513,21 @@ export async function processPlaidProviderEvent(input: {
         last_event_sequence=${event.event_sequence}, updated_at=clock_timestamp()
         WHERE id=${transfer.id}`;
       if (['failed','cancelled'].includes(nextStatus)) {
+        const [holdAccount] = await tx`
+          SELECT h.ledger_account_id
+            FROM avcu_payments.outgoing_funds_holds h
+            JOIN avcu_payments.payment_operations o ON o.id=h.operation_id
+           WHERE o.operation_type='outgoing_transfer_request'
+             AND o.idempotency_key=${transfer.idempotency_key}
+             AND h.status='active'
+        `;
+        if (holdAccount) {
+          const [lockedAccount] = await tx`
+            SELECT id FROM avcu_payments.ledger_accounts
+             WHERE id=${holdAccount.ledger_account_id} FOR UPDATE
+          `;
+          if (!lockedAccount) throw new Error('FAILED_TRANSFER_HOLD_ACCOUNT_MISSING');
+        }
         await tx`
           UPDATE avcu_payments.outgoing_funds_holds h
              SET status='released',release_reason='Provider reported transfer failed or cancelled',
