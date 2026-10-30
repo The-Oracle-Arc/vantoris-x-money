@@ -150,6 +150,15 @@
     },
     "manual_reconciliation_note": {
       "type": "string"
+    },
+    "submission_started_at": {
+      "type": "string"
+    },
+    "submission_operator_user_id": {
+      "type": "string"
+    },
+    "submission_error": {
+      "type": "string"
     }
   },
   "required": [
