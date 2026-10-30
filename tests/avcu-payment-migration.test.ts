@@ -57,3 +57,14 @@ Deno.test('AVCU backend grants are least privilege', async () => {
   assert(!/GRANT\\s+[^;]*DELETE/i.test(sql), 'Adapter role must not receive delete privileges.');
   assert(!/GRANT\\s+ALL/i.test(sql), 'Adapter role must not receive blanket privileges.');
 });
+
+
+Deno.test('AVCU outbox recovery uses expiring worker claims and retry backoff', async () => {
+  const sql = await Deno.readTextFile('migrations/005_avcu_payment_outbox_claims.sql');
+  assert(sql.includes('claim_owner uuid'), 'Outbox worker ownership must be persisted.');
+  assert(sql.includes('claim_expires_at timestamptz'), 'Outbox claims must expire after worker crashes.');
+  assert(sql.includes('available_at timestamptz'), 'Failed projections must support delayed retry.');
+  assert(sql.includes('FOR UPDATE SKIP LOCKED'), 'Concurrent reconcilers must claim disjoint outbox rows.');
+  assert(sql.includes('power(2, LEAST(attempts,8))'), 'Retry delay must grow exponentially and remain bounded.');
+  assert(sql.includes('claim_owner IS NULL'), 'Expired or released claims must be reclaimable.');
+});
