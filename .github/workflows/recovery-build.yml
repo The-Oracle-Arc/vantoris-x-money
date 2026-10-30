@@ -70,7 +70,7 @@ jobs:
             if (!schema.name || schema.type !== 'object') throw new Error(`Invalid entity schema: ${file}`);
           }
           const schemas = Object.fromEntries(
-            ['Account', 'Transaction', 'WithdrawalRequest', 'Notification', 'User'].map((name) => {
+            ['Account', 'Transaction', 'WithdrawalRequest', 'TransferRequest', 'TransferWebhookEvent', 'Notification', 'User'].map((name) => {
               const schema = JSON.parse(readFileSync(`${dir}/${name}.jsonc`, 'utf8'));
               if (!schema.rls) throw new Error(`Missing row-level security rules: ${name}`);
               return [name, schema];
