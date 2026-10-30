@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { claimPaymentOperation, registerPaymentTransfer } from '../_shared/paymentStore.ts';
+import { claimPaymentOperation, registerPaymentTransfer, acquireLease, releaseLease } from '../_shared/paymentStore.ts';
 
 const MAX_AMOUNT_CENTS = 100000000;
 const RAILS = new Set(['ACH', 'FEDWIRE', 'INTERNAL']);
@@ -54,65 +54,74 @@ export default async function(req: Request): Promise<Response> {
         beneficiary_account_last4: accountLast4, memo,
       },
     });
-    const existing = await base44.asServiceRole.entities.TransferRequest.filter({
-      user_id: member.id,
-      idempotency_key: key,
-    });
-    if (existing?.length) {
-      const prior = existing[0];
+    const lease = await acquireLease(`outgoing-transfer-projection:${operation.id}`,crypto.randomUUID(),120);
+    if (!lease) return Response.json({error:'This request is being recorded by another worker. Retry with the same idempotency key.'},{status:409});
+    try {
+      const existing = await base44.asServiceRole.entities.TransferRequest.filter({
+        user_id: member.id,
+        idempotency_key: key,
+      });
+      if (existing?.length > 1) {
+        return Response.json({error:'Multiple legacy transfer projections exist for this key. Operations review is required.'},{status:409});
+      }
+      if (existing?.length) {
+        const prior = existing[0];
+        await registerPaymentTransfer({
+          base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
+          sourceAccountRef: sourceAccountId, rail, amountCents: cents,
+        });
+        return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
+      }
+      if (!operation.created && operation.status !== 'accepted') {
+        return Response.json({ error: 'This payment operation is no longer in an initial state. Operations review is required; do not create another key.' }, { status: 409 });
+      }
+
+      const request = await base44.asServiceRole.entities.TransferRequest.create({
+        user_id: member.id,
+        source_account_id: sourceAccountId,
+        rail,
+        direction: 'outgoing',
+        amount_cents: cents,
+        currency: 'USD',
+        beneficiary_name: beneficiaryName,
+        beneficiary_bank_name: bankName,
+        beneficiary_routing_number: routing,
+        beneficiary_account_last4: accountLast4,
+        memo,
+        idempotency_key: key,
+        status: 'awaiting_bank_review',
+      });
+
       await registerPaymentTransfer({
-        base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
+        base44TransferRequestId: request.id, idempotencyKey: `${member.id}:${key}`,
         sourceAccountRef: sourceAccountId, rail, amountCents: cents,
       });
-      return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
+
+      await Promise.allSettled([
+        base44.asServiceRole.entities.Notification.create({
+          user_id: member.id,
+          title: 'Transfer request received',
+          message: 'Your transfer request is recorded for bank and operations review. No funds have been moved.',
+          type: 'info',
+          read: false,
+        }),
+        base44.asServiceRole.entities.AuditLog.create({
+          action_type: 'transfer_request_created',
+          description: `Member submitted an outgoing ${rail} transfer request`,
+          details: JSON.stringify({ transferRequestId: request.id, amount_cents: cents, currency: 'USD' }),
+          target_user_id: member.id,
+          user_id: member.id,
+        }),
+      ]);
+
+      return Response.json({
+        request: { id: request.id, rail: request.rail, amount_cents: request.amount_cents, status: request.status },
+        execution: 'not_submitted',
+        message: 'Request recorded. It has not been sent to a bank and no balance was debited.',
+      }, { status: 201 });
+    } finally {
+      await releaseLease(lease).catch(()=>false);
     }
-    if (!operation.created) {
-      return Response.json({ error: 'This request key is already being recovered. Retry shortly with the same details; do not create a new key.' }, { status: 409 });
-    }
-
-    const request = await base44.asServiceRole.entities.TransferRequest.create({
-      user_id: member.id,
-      source_account_id: sourceAccountId,
-      rail,
-      direction: 'outgoing',
-      amount_cents: cents,
-      currency: 'USD',
-      beneficiary_name: beneficiaryName,
-      beneficiary_bank_name: bankName,
-      beneficiary_routing_number: routing,
-      beneficiary_account_last4: accountLast4,
-      memo,
-      idempotency_key: key,
-      status: 'awaiting_bank_review',
-    });
-
-    await registerPaymentTransfer({
-      base44TransferRequestId: request.id, idempotencyKey: `${member.id}:${key}`,
-      sourceAccountRef: sourceAccountId, rail, amountCents: cents,
-    });
-
-    await Promise.allSettled([
-      base44.asServiceRole.entities.Notification.create({
-        user_id: member.id,
-        title: 'Transfer request received',
-        message: 'Your transfer request is recorded for bank and operations review. No funds have been moved.',
-        type: 'info',
-        read: false,
-      }),
-      base44.asServiceRole.entities.AuditLog.create({
-        action_type: 'transfer_request_created',
-        description: `Member submitted an outgoing ${rail} transfer request`,
-        details: JSON.stringify({ transferRequestId: request.id, amount_cents: cents, currency: 'USD' }),
-        target_user_id: member.id,
-        user_id: member.id,
-      }),
-    ]);
-
-    return Response.json({
-      request: { id: request.id, rail: request.rail, amount_cents: request.amount_cents, status: request.status },
-      execution: 'not_submitted',
-      message: 'Request recorded. It has not been sent to a bank and no balance was debited.',
-    }, { status: 201 });
   } catch {
     return Response.json({ error: 'Transfer request could not be recorded. No transfer execution is confirmed.' }, { status: 500 });
   }
