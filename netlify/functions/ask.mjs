@@ -183,8 +183,13 @@ export default async function handler(request) {
     return json({ error: reason, message: 'AI usage controls are temporarily unavailable. Please try again later.' }, 503);
   }
   if (!reservation.allowed) {
-    const limitReason = reservation.reason === 'daily_budget' ? 'daily_budget_reached' : 'monthly_allowance_reached';
-    return json({ error: limitReason, message: reservation.reason === 'daily_budget' ? 'The daily AI service budget has been reached. Please try again tomorrow.' : 'You have reached your monthly AI allowance. Your allowance will reset next month.' }, 429);
+    const messages = {
+      daily_budget: ['daily_budget_reached', 'The daily AI service budget has been reached. Please try again tomorrow.'],
+      minute_limit: ['rate_limited', 'You are sending requests too quickly. Wait a moment and try again.'],
+      user_limit: ['monthly_allowance_reached', 'You have reached your monthly AI allowance. Your allowance will reset next month.'],
+    };
+    const [error, message] = messages[reservation.reason] || messages.user_limit;
+    return json({ error, message }, 429);
   }
 
   const failures = [];
