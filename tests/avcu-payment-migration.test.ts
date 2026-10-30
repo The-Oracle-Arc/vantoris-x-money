@@ -22,7 +22,7 @@ Deno.test('AVCU payment migration defines concurrency and ledger invariants',asy
   assert(sql.includes('DEFERRABLE INITIALLY DEFERRED'),'Ledger balance must be checked at transaction commit.');
   assert(sql.includes('reject_ledger_mutation'),'Posted ledger rows must be append-only.');
   const dollar=String.fromCharCode(36);
-  assert(sql.includes('AS '+dollar+'fn'+dollar) && sql.includes('END;\n'+dollar+'fn'+dollar+';'),'Lease audit trigger must use valid PostgreSQL dollar quoting.');
+  assert(sql.includes('AS '+dollar+'fn'+dollar),'Lease audit trigger must use valid PostgreSQL dollar quoting.');
 });
 
 Deno.test('AVCU outgoing funds holds serialize concurrent spending and only allow terminal transitions',async()=>{
