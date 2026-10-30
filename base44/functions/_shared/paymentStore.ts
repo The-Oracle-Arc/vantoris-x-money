@@ -231,6 +231,143 @@ export async function commitPlaidEventPage(input: {
   });
 }
 
+
+export async function getProviderCursor(providerId: string, environment: 'sandbox' | 'production'): Promise<number> {
+  const rows = await database()`
+    SELECT after_id FROM avcu_payments.provider_cursors
+     WHERE provider_id=${providerId} AND environment=${environment}
+  `;
+  return Number(rows[0]?.after_id ?? 0);
+}
+
+/** Process a verified Plaid event and any settlement/reversal journal in one
+ * PostgreSQL transaction. Missing account mapping/clearing configuration is
+ * a held event, never a guessed ledger posting. */
+export async function processPlaidProviderEvent(input: {
+  providerEventId: string; environment: 'sandbox' | 'production';
+  clearingLedgerAccountId: string;
+}): Promise<{ status: string; journalId?: string; reason?: string }> {
+  return await database().begin(async tx => {
+    const [event] = await tx`
+      SELECT * FROM avcu_payments.provider_events
+       WHERE provider_id='plaid' AND environment=${input.environment}
+         AND provider_event_id=${input.providerEventId}
+       FOR UPDATE
+    `;
+    if (!event) throw new Error('PROVIDER_EVENT_NOT_FOUND');
+    if (event.processing_status === 'processed') return { status: 'duplicate' };
+    if (!event.verified_at) throw new Error('UNVERIFIED_PROVIDER_EVENT');
+    const [transfer] = await tx`
+      SELECT * FROM avcu_payments.payment_transfers
+       WHERE provider_id='plaid' AND provider_transfer_id=${event.transfer_reference}
+       FOR UPDATE
+    `;
+    if (!transfer) {
+      await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+        WHERE id=${event.id}`;
+      return { status:'held', reason:'No registered AVCU transfer mapping for provider transfer ID.' };
+    }
+    if (Number(transfer.amount_cents) !== Number(event.amount_cents) ||
+        transfer.currency !== event.currency) {
+      await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+        WHERE id=${event.id}`;
+      return { status:'held', reason:'Provider event amount or currency does not match the approved transfer.' };
+    }
+    if (event.event_sequence !== null && transfer.last_event_sequence !== null &&
+        Number(event.event_sequence) <= Number(transfer.last_event_sequence)) {
+      await tx`UPDATE avcu_payments.provider_events SET processing_status='processed', processed_at=clock_timestamp()
+        WHERE id=${event.id}`;
+      return { status:'ignored_old_event' };
+    }
+
+    const rawType = String(event.event_type).toLowerCase().replace(/^transfer[._]/,'');
+    let nextStatus = '';
+    let journalId: string | undefined;
+    if (rawType === 'posted' || rawType === 'settled') {
+      nextStatus = 'settled';
+      if (!transfer.settled_journal_id) {
+        const [memberLedger] = await tx`
+          SELECT id FROM avcu_payments.ledger_accounts
+           WHERE external_account_ref=${transfer.source_account_ref} AND currency=${transfer.currency}
+        `;
+        const [clearing] = await tx`
+          SELECT id FROM avcu_payments.ledger_accounts
+           WHERE id=${input.clearingLedgerAccountId} AND account_type='bank_clearing'
+             AND currency=${transfer.currency}
+        `;
+        if (!memberLedger || !clearing) {
+          await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+            WHERE id=${event.id}`;
+          return { status:'held', reason:'Member or bank-clearing ledger account mapping is missing.' };
+        }
+        journalId = uuid();
+        await tx`
+          INSERT INTO avcu_payments.ledger_journals
+            (id, source_type, source_id, idempotency_key, currency, description)
+          VALUES (${journalId}, 'outgoing_transfer_settlement', ${transfer.id},
+            ${'settlement:'+transfer.id}, ${transfer.currency}, 'Settled outgoing bank transfer')
+        `;
+        await tx`
+          INSERT INTO avcu_payments.ledger_entries(id,journal_id,ledger_account_id,currency,amount_cents)
+          VALUES (${uuid()},${journalId},${memberLedger.id},${transfer.currency},${-Number(transfer.amount_cents)}),
+                 (${uuid()},${journalId},${clearing.id},${transfer.currency},${Number(transfer.amount_cents)})
+        `;
+      } else journalId = transfer.settled_journal_id;
+      await tx`UPDATE avcu_payments.payment_transfers
+        SET status='settled', settled_journal_id=COALESCE(settled_journal_id,${journalId}),
+            last_event_sequence=${event.event_sequence}, updated_at=clock_timestamp()
+        WHERE id=${transfer.id}`;
+    } else if (rawType === 'returned') {
+      nextStatus = 'returned';
+      if (transfer.settled_journal_id) {
+        const [priorReversal] = await tx`SELECT id FROM avcu_payments.ledger_journals
+          WHERE reversal_of=${transfer.settled_journal_id}`;
+        if (!priorReversal) {
+          const [original] = await tx`SELECT currency FROM avcu_payments.ledger_journals
+            WHERE id=${transfer.settled_journal_id} FOR UPDATE`;
+          if (!original) throw new Error('SETTLEMENT_JOURNAL_MISSING');
+          journalId = uuid();
+          await tx`
+            INSERT INTO avcu_payments.ledger_journals
+              (id,source_type,source_id,idempotency_key,currency,description,reversal_of)
+            VALUES (${journalId},'provider_return',${transfer.settled_journal_id},
+              ${'return:'+event.provider_event_id},${original.currency},
+              'Reverse settled transfer returned by provider',${transfer.settled_journal_id})
+          `;
+          const originalEntries = await tx`SELECT ledger_account_id,amount_cents
+            FROM avcu_payments.ledger_entries WHERE journal_id=${transfer.settled_journal_id}`;
+          for (const entry of originalEntries) {
+            await tx`INSERT INTO avcu_payments.ledger_entries
+              (id,journal_id,ledger_account_id,currency,amount_cents)
+              VALUES (${uuid()},${journalId},${entry.ledger_account_id},${original.currency},${-Number(entry.amount_cents)})`;
+          }
+        } else journalId = priorReversal.id;
+      }
+      await tx`UPDATE avcu_payments.payment_transfers SET status='returned',
+        last_event_sequence=${event.event_sequence}, updated_at=clock_timestamp()
+        WHERE id=${transfer.id}`;
+    } else if (['pending','failed','cancelled'].includes(rawType)) {
+      nextStatus = rawType;
+      await tx`UPDATE avcu_payments.payment_transfers SET status=${nextStatus},
+        last_event_sequence=${event.event_sequence}, updated_at=clock_timestamp()
+        WHERE id=${transfer.id}`;
+    } else {
+      await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+        WHERE id=${event.id}`;
+      return { status:'held', reason:'Unsupported Plaid transfer event type.' };
+    }
+
+    await tx`UPDATE avcu_payments.provider_events SET processing_status='processed',
+      processed_at=clock_timestamp() WHERE id=${event.id}`;
+    await tx`
+      INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+      VALUES ('plaid-provider','provider_event_processed','provider_event',${event.provider_event_id},
+        ${tx.json({transferId:transfer.id,status:nextStatus,journalId:journalId||null})})
+    `;
+    return { status:nextStatus, journalId };
+  });
+}
+
 export interface JournalEntryInput { ledgerAccountId: string; amountCents: number; }
 export async function postBalancedJournal(input: {
   sourceType: string; sourceId: string; idempotencyKey: string;
