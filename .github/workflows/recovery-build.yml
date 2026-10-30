@@ -31,8 +31,8 @@ jobs:
           deno-version: v2.x
       - name: Validate and test Oracle runtime
         run: |
-          deno check base44/functions/oracleRuntime/entry.ts
-          deno test --allow-env base44/shared/runtime/nexus.test.ts
+          deno check --node-modules-dir=auto base44/functions/oracleRuntime/entry.ts
+          deno test --node-modules-dir=auto --allow-env base44/shared/runtime/nexus.test.ts
       - name: Prevent direct browser AI execution paths
         run: |
           node --input-type=module <<'NODE'
