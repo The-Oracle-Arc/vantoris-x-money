@@ -35,13 +35,21 @@
     "syncing"
   ],
   "rls": {
-    "create": false,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "read": {
       "user_condition": {
         "role": "admin"
       }
     },
-    "update": false,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "delete": false
   }
 }
