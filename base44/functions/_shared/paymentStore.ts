@@ -1,13 +1,11 @@
 import postgres from 'npm:postgres@3.4.7';
 
 type Sql = ReturnType<typeof postgres>;
-type Tx = Parameters<Parameters<Sql['begin']>[0]>[0];
-
 let client: Sql | null = null;
 
 function database(): Sql {
   if (client) return client;
-  const url = Deno.env.get('AVCU_LEDGER_DATABASE_URL');
+  const url = Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL') || Deno.env.get('AVCU_LEDGER_DATABASE_URL');
   if (!url) throw new Error('AVCU_LEDGER_DATABASE_URL is not configured; payment-critical storage is unavailable.');
   const parsed = new URL(url);
   if (parsed.protocol !== 'postgres:' && parsed.protocol !== 'postgresql:') {
@@ -106,6 +104,49 @@ export async function ingestProviderEvent(input: {
     if (!prior || prior.payload_hash !== hash) throw new Error('PROVIDER_EVENT_INTEGRITY_CONFLICT');
     return { id: prior.id, duplicate: true };
   });
+}
+
+
+/** Register the Base44 projection after a unique SQL operation claim.
+ * Repeating the same registration is safe; mismatched values are rejected. */
+export async function registerPaymentTransfer(input: {
+  base44TransferRequestId: string; idempotencyKey: string; sourceAccountRef: string;
+  rail: 'ACH' | 'FEDWIRE'; amountCents: number;
+}): Promise<{ id: string; duplicate: boolean }> {
+  if (!Number.isSafeInteger(input.amountCents) || input.amountCents < 1) throw new Error('INVALID_TRANSFER_AMOUNT');
+  return await database().begin(async tx => {
+    const rows = await tx`
+      INSERT INTO avcu_payments.payment_transfers
+        (id, base44_transfer_request_id, idempotency_key, source_account_ref, rail, amount_cents, status)
+      VALUES (${uuid()}, ${input.base44TransferRequestId}, ${input.idempotencyKey},
+        ${input.sourceAccountRef}, ${input.rail}, ${input.amountCents}, 'awaiting_bank_review')
+      ON CONFLICT (idempotency_key) DO NOTHING RETURNING id
+    `;
+    if (rows.length) return { id: rows[0].id, duplicate: false };
+    const [prior] = await tx`
+      SELECT id, base44_transfer_request_id, source_account_ref, rail, amount_cents
+        FROM avcu_payments.payment_transfers WHERE idempotency_key=${input.idempotencyKey} FOR UPDATE
+    `;
+    if (!prior || prior.base44_transfer_request_id !== input.base44TransferRequestId ||
+        prior.source_account_ref !== input.sourceAccountRef || prior.rail !== input.rail ||
+        Number(prior.amount_cents) !== input.amountCents) {
+      throw new Error('PAYMENT_TRANSFER_IDEMPOTENCY_CONFLICT');
+    }
+    return { id: prior.id, duplicate: true };
+  });
+}
+
+export async function setProviderTransferReference(input: {
+  base44TransferRequestId: string; providerId: string; providerTransferId: string;
+}): Promise<void> {
+  const changed = await database()`
+    UPDATE avcu_payments.payment_transfers
+       SET provider_id=${input.providerId}, provider_transfer_id=${input.providerTransferId},
+           status='submitted_to_bank', updated_at=clock_timestamp()
+     WHERE base44_transfer_request_id=${input.base44TransferRequestId}
+       AND (provider_transfer_id IS NULL OR provider_transfer_id=${input.providerTransferId})
+  `;
+  if (changed.count !== 1) throw new Error('PAYMENT_TRANSFER_PROVIDER_REFERENCE_CONFLICT');
 }
 
 export interface Lease {
