@@ -142,6 +142,12 @@ Deno.test({
         `;
         assertEquals(balances[0].entry_count,2);
         assertEquals(Number(balances[0].net),0);
+        const outgoingReversalSigns=await db`
+          SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
+           WHERE journal_id=${returned.journalId}
+        `;
+        assertEquals(Number(outgoingReversalSigns.find(x=>x.ledger_account_id===accountA)?.amount_cents),-1000);
+        assertEquals(Number(outgoingReversalSigns.find(x=>x.ledger_account_id===accountB)?.amount_cents),1000);
 
         const receiptKey=`receipt-${key}`;
         const receiptInput={rail:'ACH' as const,bankReference:`bankref-${key}`,
@@ -153,6 +159,7 @@ Deno.test({
         assertEquals(receipt.duplicate,false);
         assertEquals(receiptRetry.id,receipt.id);
         assertEquals(receiptRetry.duplicate,true);
+        await assertRejects(()=>recordIncomingReceipt({...receiptInput,idempotencyKey:`different-key-${key}`}));
         await linkIncomingReceipt(receipt.id,`base44-receipt:${key}`);
         const verified=await verifyAndPostIncomingReceipt({
           receiptId:receipt.id,actorId:'independent-verifier',action:'verify_received',
@@ -172,6 +179,12 @@ Deno.test({
         });
         assertEquals(returnedReceipt.status,'returned');
         assert(returnedReceipt.journalId);
+        const incomingReversalSigns=await db`
+          SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
+           WHERE journal_id=${returnedReceipt.journalId}
+        `;
+        assertEquals(Number(incomingReversalSigns.find(x=>x.ledger_account_id===accountB)?.amount_cents),-2500);
+        assertEquals(Number(incomingReversalSigns.find(x=>x.ledger_account_id===accountA)?.amount_cents),2500);
 
         await assertRejects(()=>db.begin(async tx=>{
           const badId=crypto.randomUUID();
