@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { formatCurrency } from '@/lib/formatCurrency';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowDownToLine, ArrowUpRight, Camera, Check, ChevronRight, CreditCard, QrCode, Search, Send, ShieldCheck, Wallet, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpRight, Check, ChevronRight, CreditCard, QrCode, Search, Send, ShieldCheck, Wallet, X } from 'lucide-react';
 import { findZelleRecipient, maskZelleIdentifier, normalizeZelleIdentifier } from '@/lib/zelle';
 import { notifyOperators } from '@/lib/notifyOperators';
 
