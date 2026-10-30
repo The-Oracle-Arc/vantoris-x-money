@@ -178,7 +178,6 @@ export default function AgentChat({
     try {
       if (elevated) {
         const result = await executeElevatedCommand(content, me);
-        let conv = activeConv;
 
         const summary = redactCommandSecrets(
           result.message ||
