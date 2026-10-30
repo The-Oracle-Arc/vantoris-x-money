@@ -82,7 +82,15 @@ export default async function(req: Request): Promise<Response> {
       };
     }
 
-    const updated = await base44.asServiceRole.entities.TransferRequest.update(requestId, update);
+    // Atomic compare-and-set: only one reviewer/approver can move this exact prior state.
+    const claim = await base44.asServiceRole.entities.TransferRequest.updateMany(
+      { id: requestId, status: request.status },
+      { $set: update },
+    );
+    if (!claim?.success || claim.updated !== 1) {
+      return Response.json({ error: 'Another staff action changed this request. Refresh before trying again.' }, { status: 409 });
+    }
+    const updated = await base44.asServiceRole.entities.TransferRequest.get(requestId);
     await Promise.allSettled([
       base44.asServiceRole.entities.AuditLog.create({
         action_type: `transfer_request_${action}`,
