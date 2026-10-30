@@ -132,6 +132,12 @@ CREATE TABLE IF NOT EXISTS avcu_payments.ledger_entries (
     REFERENCES avcu_payments.ledger_accounts(id, currency)
 );
 
+
+ALTER TABLE avcu_payments.bank_receipts
+  ADD COLUMN IF NOT EXISTS base44_receipt_id text UNIQUE,
+  ADD COLUMN IF NOT EXISTS ledger_journal_id uuid UNIQUE
+    REFERENCES avcu_payments.ledger_journals(id);
+
 CREATE INDEX IF NOT EXISTS ledger_entries_journal_idx
   ON avcu_payments.ledger_entries(journal_id);
 
