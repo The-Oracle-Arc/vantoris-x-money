@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { formatCurrency } from '@/lib/formatCurrency';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowDownToLine, ArrowUpRight, Check, ChevronRight, CreditCard, QrCode, Search, Send, ShieldCheck, Wallet, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpRight, Check, ChevronRight, CreditCard, QrCode, Search, Send, ShieldCheck, Wallet, X, Landmark } from 'lucide-react';
 import { findZelleRecipient, maskZelleIdentifier, normalizeZelleIdentifier } from '@/lib/zelle';
 import { notifyOperators } from '@/lib/notifyOperators';
 
@@ -36,12 +36,70 @@ export default function MoveMoney() {
     <header className="mb-6"><p className="text-gray text-sm">AVCU member payments</p><h1 className="text-3xl font-bold mt-1">Pay</h1><p className="text-gray text-sm mt-1">View accounts and prepare payment requests.</p></header>
     <section role="status" className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950"><p className="font-semibold text-sm">Transfers are not enabled yet</p><p className="text-xs mt-1 leading-5">Sending and deposits are unavailable until an authorized server-side ledger and bank processing workflow is connected. Displayed balances are account records, not verified available funds or a live bank balance.</p></section>
     <section className="mb-6 rounded-[28px] bg-[#0B2342] text-white p-5 shadow-xl relative overflow-hidden"><div className="absolute -right-16 -top-16 w-40 h-40 rounded-full bg-brass/10"/><p className="text-white/55 text-xs uppercase tracking-[0.18em]">Recorded account balance</p><p className="text-4xl font-semibold mt-2">{formatCurrency(totalBalance)}</p><p className="text-white/55 text-xs mt-2">{accounts.length} account{accounts.length === 1 ? '' : 's'}</p>{portfolioValue > 0 && <div className="mt-5 pt-4 border-t border-white/10 flex justify-between"><span className="text-white/60 text-xs">Investment portfolio</span><span className="font-semibold">{formatCurrency(portfolioValue)}</span></div>}</section>
+    <section className="mb-6 rounded-2xl border border-border bg-white p-4">
+      <div className="flex items-center gap-3">
+        <span className="w-11 h-11 rounded-xl bg-navy/5 text-navy flex items-center justify-center"><Landmark size={20}/></span>
+        <div className="flex-1"><h2 className="font-semibold">U.S. bank transfer</h2><p className="text-xs text-gray mt-1">Prepare an ACH or domestic wire request</p></div>
+      </div>
+      <button onClick={() => setPanel('bank-transfer')} className="mt-4 w-full rounded-xl bg-navy text-white py-3 text-sm font-semibold">Start transfer request</button>
+      <p className="mt-2 text-[11px] text-gray">Requests enter operations review. They are not transmitted to a bank or deducted from your account in this release.</p>
+    </section>
     <section className="grid grid-cols-4 gap-2 mb-7">{actionItems.map(([id,label,Icon]) => <button key={id} onClick={() => setPanel(id)} disabled={!SERVER_MONEY_OPERATIONS_ENABLED} title={!SERVER_MONEY_OPERATIONS_ENABLED ? "Unavailable until secure payment processing is enabled" : undefined} className="flex flex-col items-center gap-2 py-3 rounded-2xl bg-white border border-border shadow-sm disabled:opacity-45 disabled:cursor-not-allowed"><span className="w-11 h-11 rounded-full bg-brass/10 text-brass flex items-center justify-center"><Icon size={19}/></span><span className="text-[11px] font-medium">{label}</span></button>)}</section>
     <section className="mb-7"><div className="flex justify-between mb-3"><h2 className="font-semibold">Accounts</h2><span className="text-xs text-gray">{accounts.length}</span></div><div className="space-y-3">{accounts.map(a => <button key={a.id} onClick={() => setPanel({type:'account',account:a})} className="w-full text-left bg-white border border-border rounded-[24px] p-4 shadow-sm flex items-center gap-3"><span className="w-11 h-11 rounded-2xl bg-navy/5 text-navy flex items-center justify-center"><Wallet size={20}/></span><span className="flex-1 min-w-0"><span className="block font-semibold truncate">{a.account_name || a.account_type}</span><span className="block text-xs text-gray mt-0.5">{a.account_type} · {maskAccount(a.account_number)}</span></span><span className="text-right"><span className="block font-semibold">{formatCurrency(a.balance || 0)}</span><span className="text-[11px] text-mint">{a.status || 'active'}</span></span><ChevronRight size={17} className="text-gray/50"/></button>)}{accounts.length === 0 && <div className="rounded-[24px] border border-dashed border-border p-6 text-center text-sm text-gray">No accounts yet.</div>}</div></section>
     {cards.length > 0 && <section className="mb-7"><div className="flex justify-between mb-3"><h2 className="font-semibold">Cards</h2><span className="text-xs text-gray">{cards.length}</span></div><div className="space-y-3">{cards.map(card => <PaymentCard key={card.id} card={card}/>)}</div></section>}
     {portfolioValue > 0 && <section className="mb-7 rounded-[28px] bg-white border border-border p-5 shadow-sm"><p className="text-xs uppercase tracking-[0.16em] text-gray">Wealth</p><div className="flex justify-between items-center mt-1"><h2 className="text-xl font-semibold">Portfolio</h2><button onClick={() => window.location.assign('/investment')} className="text-brass text-sm font-semibold">Open</button></div><p className="text-3xl font-semibold mt-5">{formatCurrency(portfolioValue)}</p><p className="text-xs text-gray mt-1">Across your investment portfolios</p></section>}
-    {panel && <MoneyPanel panel={panel} accounts={accounts} user={user} onClose={() => setPanel(null)}/>} 
+    {panel === 'bank-transfer' ? <BankTransferPanel accounts={accounts} onClose={() => setPanel(null)} /> : panel && <MoneyPanel panel={panel} accounts={accounts} user={user} onClose={() => setPanel(null)}/ >} 
   </div>;
+}
+
+function BankTransferPanel({accounts,onClose}) {
+  const [rail,setRail]=useState('ACH');
+  const [accountId,setAccountId]=useState(accounts[0]?.id||'');
+  const [amount,setAmount]=useState('');
+  const [beneficiary,setBeneficiary]=useState('');
+  const [bank,setBank]=useState('');
+  const [routing,setRouting]=useState('');
+  const [last4,setLast4]=useState('');
+  const [memo,setMemo]=useState('');
+  const [busy,setBusy]=useState(false);
+  const {toast}=useToast();
+  async function submit(e) {
+    e.preventDefault();
+    const dollars=Number(amount);
+    if(!Number.isFinite(dollars)||dollars<=0||Math.round(dollars*100)!==dollars*100) {
+      toast({title:'Enter a valid amount',description:'Use dollars and cents, for example 125.00.',variant:'destructive'}); return;
+    }
+    if(!accountId||!beneficiary.trim()||!bank.trim()||!/^\d{9}$/.test(routing)||!/^\d{4}$/.test(last4)) {
+      toast({title:'Complete the transfer details',description:'Check the beneficiary, bank, 9-digit routing number and account last four.',variant:'destructive'}); return;
+    }
+    setBusy(true);
+    try {
+      const result=await base44.functions.invoke('createTransferRequest',{
+        rail,source_account_id:accountId,amount_cents:Math.round(dollars*100),
+        beneficiary_name:beneficiary,beneficiary_bank_name:bank,
+        beneficiary_routing_number:routing,beneficiary_account_last4:last4,
+        memo,idempotency_key:crypto.randomUUID()
+      });
+      toast({title:'Transfer request recorded',description:result?.data?.message||'Your request is awaiting operations review. No funds have moved.'});
+      onClose();
+    } catch(error) {
+      toast({title:'Request not submitted',description:error?.message||'The server could not record this request.',variant:'destructive'});
+    } finally { setBusy(false); }
+  }
+  return <Sheet title="U.S. bank transfer" subtitle="Secure transfer request intake" onClose={onClose}>
+    <form onSubmit={submit} className="space-y-4">
+      <div><label className="block text-xs text-gray mb-2">Transfer rail</label><select value={rail} onChange={e=>setRail(e.target.value)} className="w-full h-12 rounded-xl border border-border px-3 text-sm"><option value="ACH">ACH transfer</option><option value="FEDWIRE">Domestic Fedwire</option></select></div>
+      <div><label className="block text-xs text-gray mb-2">From AVCU account</label><select value={accountId} onChange={e=>setAccountId(e.target.value)} className="w-full h-12 rounded-xl border border-border px-3 text-sm">{accounts.map(a=><option key={a.id} value={a.id}>{a.account_name||a.account_type} · •••• {String(a.account_number||'').slice(-4)}</option>)}</select></div>
+      <div><label className="block text-xs text-gray mb-2">Amount (USD)</label><input required inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00" className="w-full h-12 rounded-xl border border-border px-3 text-sm"/></div>
+      <div><label className="block text-xs text-gray mb-2">Beneficiary full name</label><input required maxLength={120} value={beneficiary} onChange={e=>setBeneficiary(e.target.value)} className="w-full h-12 rounded-xl border border-border px-3 text-sm"/></div>
+      <div><label className="block text-xs text-gray mb-2">Beneficiary bank</label><input required maxLength={120} value={bank} onChange={e=>setBank(e.target.value)} className="w-full h-12 rounded-xl border border-border px-3 text-sm"/></div>
+      <div><label className="block text-xs text-gray mb-2">9-digit ABA routing number</label><input required inputMode="numeric" maxLength={9} value={routing} onChange={e=>setRouting(e.target.value.replace(/\D/g,'').slice(0,9))} className="w-full h-12 rounded-xl border border-border px-3 text-sm"/></div>
+      <div><label className="block text-xs text-gray mb-2">Beneficiary account last four digits</label><input required inputMode="numeric" maxLength={4} value={last4} onChange={e=>setLast4(e.target.value.replace(/\D/g,'').slice(0,4))} className="w-full h-12 rounded-xl border border-border px-3 text-sm"/></div>
+      <div><label className="block text-xs text-gray mb-2">Memo (optional)</label><input maxLength={140} value={memo} onChange={e=>setMemo(e.target.value)} className="w-full h-12 rounded-xl border border-border px-3 text-sm"/></div>
+      <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-950">This records a request for review only. No bank submission, debit, settlement or transfer confirmation occurs here.</div>
+      <button disabled={busy||!accounts.length} className="w-full h-12 rounded-xl bg-navy text-white font-semibold disabled:opacity-50">{busy?'Submitting request…':'Submit transfer request'}</button>
+    </form>
+  </Sheet>;
 }
 
 function PaymentCard({card}) { return <div className="relative overflow-hidden rounded-[26px] p-5 min-h-[190px] text-white shadow-2xl bg-gradient-to-br from-[#0A2140] via-[#122F53] to-[#07162A]"><div className="absolute -right-10 -top-10 w-32 h-32 rounded-full border border-brass/25"/><div className="flex justify-between"><span className="text-sm font-semibold tracking-[0.18em]">VANTORIS</span><CreditCard size={22} className="text-white/70"/></div><div className="mt-10 text-lg tracking-[0.22em]">•••• •••• •••• {card.last4}</div><div className="mt-5 flex justify-between"><div><p className="text-[9px] uppercase text-white/45">Cardholder</p><p className="text-xs mt-1 uppercase">{card.cardholder_name || 'Vantoris Member'}</p></div><div><p className="text-[9px] uppercase text-white/45">Type</p><p className="text-xs mt-1 capitalize">{card.card_type || 'debit'}</p></div></div></div>; }
