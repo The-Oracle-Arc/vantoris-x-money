@@ -21,6 +21,9 @@ Deno.test({
   sanitizeOps: false,
   sanitizeResources: false,
   async fn() {
+    const testUrl=Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL');
+    if(!testUrl) throw new Error('AVCU_LEDGER_TEST_DATABASE_URL is required for integration tests.');
+    Deno.env.set('AVCU_LEDGER_DATABASE_URL',testUrl);
     const key = `test-${crypto.randomUUID()}`;
     try {
       const claims = await Promise.all(Array.from({length:20},()=>claimPaymentOperation({
@@ -58,7 +61,7 @@ Deno.test({
       const accountA=crypto.randomUUID(), accountB=crypto.randomUUID();
       // Test fixture accounts are intentionally unique and isolated.
       const postgres = (await import('npm:postgres@3.4.7')).default;
-      const db=postgres(Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL')!,{ssl:'require',prepare:false});
+      const db=postgres(Deno.env.get('AVCU_LEDGER_DATABASE_URL')!,{ssl:'require',prepare:false});
       await db`INSERT INTO avcu_payments.ledger_accounts(id,external_account_ref,account_type) VALUES
         (${accountA},${'test:'+accountA},'member_deposit'),
         (${accountB},${'test:'+accountB},'bank_clearing')`;
