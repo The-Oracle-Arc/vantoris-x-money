@@ -14,8 +14,11 @@ export default async function(req:Request):Promise<Response>{
   const base44=createClientFromRequest(req);
   let state:any=null;
   try{
-    const staff=await base44.auth.me();
-    if(!staff?.id||!ROLES.has(staff.role)) return Response.json({error:'Authorized finance/treasury staff only.'},{status:403});
+    const body=await req.json().catch(()=>null);
+    const internalSecret=Deno.env.get('AVCU_INTERNAL_SYNC_SECRET');
+    const trustedInternalCall=!!internalSecret && body?.internal_secret===internalSecret;
+    const staff=await base44.auth.me().catch(()=>null);
+    if(!trustedInternalCall && (!staff?.id||!ROLES.has(staff.role))) return Response.json({error:'Authorized finance/treasury staff only.'},{status:403});
     const clientId=Deno.env.get('PLAID_CLIENT_ID');
     const secret=Deno.env.get('PLAID_SECRET');
     const environment=Deno.env.get('PLAID_ENV');
