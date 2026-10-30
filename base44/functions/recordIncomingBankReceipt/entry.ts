@@ -43,7 +43,7 @@ export default async function(req: Request): Promise<Response> {
       const lease=await acquireLease(`incoming-receipt-projection:${transactional.id}`,crypto.randomUUID(),120);
       if(!lease) return Response.json({error:'Receipt projection is being recorded by another worker. Retry with the same idempotency key.'},{status:409});
       try {
-        const duplicate=await base44.asServiceRole.entities.IncomingBankReceipt.filter({idempotency_key:idempotencyKey});
+        const duplicate=await base44.asServiceRole.entities.IncomingBankReceipt.filter({member_user_id:memberUserId,idempotency_key:idempotencyKey});
         if(duplicate?.length){
           await linkIncomingReceipt(transactional.id,duplicate[0].id);
           return Response.json({receipt:{id:duplicate[0].id,status:duplicate[0].status},duplicate:true,ledger_posted:duplicate[0].ledger_posting_status==='posted'},{status:200});
