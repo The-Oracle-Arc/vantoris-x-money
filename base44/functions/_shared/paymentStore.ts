@@ -502,6 +502,128 @@ export async function recordPaymentOutboxFailure(id: number, message: string): P
   `;
 }
 
+
+export async function recordIncomingReceipt(input: {
+  rail:'ACH'|'FEDWIRE'; bankReference:string; idempotencyKey:string;
+  memberAccountRef:string; amountCents:number; evidenceReference:string; recordedBy:string;
+}): Promise<{id:string;duplicate:boolean;status:string}> {
+  if (!Number.isSafeInteger(input.amountCents) || input.amountCents < 1) throw new Error('INVALID_RECEIPT_AMOUNT');
+  return await database().begin(async tx => {
+    const rows = await tx`
+      INSERT INTO avcu_payments.bank_receipts
+        (id,rail,bank_reference,idempotency_key,member_account_ref,amount_cents,
+         evidence_reference,verification_status,recorded_by)
+      VALUES (${uuid()},${input.rail},${input.bankReference},${input.idempotencyKey},
+        ${input.memberAccountRef},${input.amountCents},${input.evidenceReference},
+        'awaiting_verification',${input.recordedBy})
+      ON CONFLICT DO NOTHING RETURNING id,verification_status
+    `;
+    if (rows.length) return {id:rows[0].id,duplicate:false,status:rows[0].verification_status};
+    const [prior] = await tx`
+      SELECT id,verification_status,member_account_ref,amount_cents,rail,bank_reference
+        FROM avcu_payments.bank_receipts
+       WHERE idempotency_key=${input.idempotencyKey}
+          OR (rail=${input.rail} AND bank_reference=${input.bankReference})
+       FOR UPDATE
+    `;
+    if (!prior || prior.member_account_ref!==input.memberAccountRef ||
+        Number(prior.amount_cents)!==input.amountCents || prior.rail!==input.rail ||
+        prior.bank_reference!==input.bankReference) throw new Error('INCOMING_RECEIPT_IDEMPOTENCY_CONFLICT');
+    return {id:prior.id,duplicate:true,status:prior.verification_status};
+  });
+}
+
+export async function linkIncomingReceipt(receiptId:string,base44ReceiptId:string):Promise<void> {
+  const result=await database()`
+    UPDATE avcu_payments.bank_receipts SET base44_receipt_id=${base44ReceiptId}
+     WHERE id=${receiptId} AND (base44_receipt_id IS NULL OR base44_receipt_id=${base44ReceiptId})
+  `;
+  if(result.count!==1) throw new Error('INCOMING_RECEIPT_PROJECTION_CONFLICT');
+}
+
+/** Independent receipt verification and the member/clearing ledger posting
+ * commit together. Returns and rejections are also idempotent. */
+export async function verifyAndPostIncomingReceipt(input:{
+  receiptId:string; actorId:string; action:'verify_received'|'record_return'|'reject_receipt';
+  evidenceReference:string; clearingLedgerAccountId:string;
+}):Promise<{status:string;journalId?:string;duplicate:boolean}> {
+  return await database().begin(async tx=>{
+    const [receipt]=await tx`SELECT * FROM avcu_payments.bank_receipts WHERE id=${input.receiptId} FOR UPDATE`;
+    if(!receipt) throw new Error('INCOMING_RECEIPT_NOT_FOUND');
+    if(receipt.recorded_by===input.actorId) throw new Error('SEPARATION_OF_DUTIES_VIOLATION');
+    if(input.action==='verify_received' && receipt.verification_status==='verified_received') {
+      return {status:'verified_received',journalId:receipt.ledger_journal_id||undefined,duplicate:true};
+    }
+    if(input.action==='record_return' && receipt.verification_status==='returned') {
+      return {status:'returned',journalId:receipt.ledger_journal_id||undefined,duplicate:true};
+    }
+    if(input.action==='reject_receipt' && receipt.verification_status==='rejected') {
+      return {status:'rejected',duplicate:true};
+    }
+    if(input.action==='verify_received') {
+      if(receipt.verification_status!=='awaiting_verification') throw new Error('RECEIPT_STATE_CONFLICT');
+      const [memberLedger]=await tx`SELECT id FROM avcu_payments.ledger_accounts
+        WHERE external_account_ref=${receipt.member_account_ref} AND account_type='member_deposit'
+          AND currency=${receipt.currency}`;
+      const [clearing]=await tx`SELECT id FROM avcu_payments.ledger_accounts
+        WHERE id=${input.clearingLedgerAccountId} AND account_type='bank_clearing'
+          AND currency=${receipt.currency}`;
+      if(!memberLedger||!clearing) throw new Error('RECEIPT_LEDGER_ACCOUNT_MAPPING_MISSING');
+      const journalId=uuid();
+      await tx`INSERT INTO avcu_payments.ledger_journals
+        (id,source_type,source_id,idempotency_key,currency,description)
+        VALUES (${journalId},'incoming_bank_receipt',${receipt.id},
+          ${'incoming-receipt:'+receipt.id},${receipt.currency},'Verified incoming bank receipt')`;
+      await tx`INSERT INTO avcu_payments.ledger_entries
+        (id,journal_id,ledger_account_id,currency,amount_cents)
+        VALUES (${uuid()},${journalId},${clearing.id},${receipt.currency},${-Number(receipt.amount_cents)}),
+               (${uuid()},${journalId},${memberLedger.id},${receipt.currency},${Number(receipt.amount_cents)})`;
+      await tx`UPDATE avcu_payments.bank_receipts SET verification_status='verified_received',
+        verified_by=${input.actorId},ledger_journal_id=${journalId}
+        WHERE id=${receipt.id}`;
+      await tx`INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+        VALUES (${input.actorId},'incoming_receipt_verified_and_posted','bank_receipt',${receipt.id},
+          ${tx.json({amountCents:Number(receipt.amount_cents),journalId,evidenceReference:input.evidenceReference})})`;
+      return {status:'verified_received',journalId,duplicate:false};
+    }
+    if(input.action==='record_return') {
+      if(receipt.verification_status==='awaiting_verification') {
+        await tx`UPDATE avcu_payments.bank_receipts SET verification_status='returned',
+          verified_by=${input.actorId} WHERE id=${receipt.id}`;
+        return {status:'returned',duplicate:false};
+      }
+      if(receipt.verification_status!=='verified_received'||!receipt.ledger_journal_id) throw new Error('RECEIPT_STATE_CONFLICT');
+      const [original]=await tx`SELECT currency FROM avcu_payments.ledger_journals
+        WHERE id=${receipt.ledger_journal_id} FOR UPDATE`;
+      if(!original) throw new Error('RECEIPT_JOURNAL_NOT_FOUND');
+      const reversalId=uuid();
+      await tx`INSERT INTO avcu_payments.ledger_journals
+        (id,source_type,source_id,idempotency_key,currency,description,reversal_of)
+        VALUES (${reversalId},'incoming_receipt_return',${receipt.ledger_journal_id},
+          ${'incoming-return:'+receipt.id},${original.currency},'Reverse returned incoming bank receipt',
+          ${receipt.ledger_journal_id})`;
+      const entries=await tx`SELECT ledger_account_id,amount_cents FROM avcu_payments.ledger_entries
+        WHERE journal_id=${receipt.ledger_journal_id}`;
+      for(const entry of entries) await tx`INSERT INTO avcu_payments.ledger_entries
+        (id,journal_id,ledger_account_id,currency,amount_cents)
+        VALUES (${uuid()},${reversalId},${entry.ledger_account_id},${original.currency},${-Number(entry.amount_cents)})`;
+      await tx`UPDATE avcu_payments.bank_receipts SET verification_status='returned',
+        verified_by=${input.actorId} WHERE id=${receipt.id}`;
+      await tx`INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+        VALUES (${input.actorId},'incoming_receipt_returned','bank_receipt',${receipt.id},
+          ${tx.json({reversalJournalId:reversalId,evidenceReference:input.evidenceReference})})`;
+      return {status:'returned',journalId:reversalId,duplicate:false};
+    }
+    if(receipt.verification_status!=='awaiting_verification') throw new Error('RECEIPT_STATE_CONFLICT');
+    await tx`UPDATE avcu_payments.bank_receipts SET verification_status='rejected',verified_by=${input.actorId}
+      WHERE id=${receipt.id}`;
+    await tx`INSERT INTO avcu_payments.payment_audit(actor_id,action,object_type,object_id,details)
+      VALUES (${input.actorId},'incoming_receipt_rejected','bank_receipt',${receipt.id},
+        ${tx.json({evidenceReference:input.evidenceReference})})`;
+    return {status:'rejected',duplicate:false};
+  });
+}
+
 export async function closePaymentStore(): Promise<void> {
   if (client) { const current = client; client = null; await current.end({ timeout: 5 }); }
 }
