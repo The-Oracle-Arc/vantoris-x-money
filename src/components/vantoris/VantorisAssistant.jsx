@@ -23,7 +23,6 @@ export default function VantorisAssistant() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
-  const [conversation, setConversation] = useState(null);
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -39,7 +38,6 @@ export default function VantorisAssistant() {
   useEffect(() => {
     loadOracleHistory().then((result) => {
       if (result.ok && result.threadId) {
-        setConversation({ id: result.threadId });
         setMessages((result.messages || []).map(item => ({ role: item.sender, content: item.body })));
       }
     }).catch(() => {});
@@ -60,7 +58,6 @@ export default function VantorisAssistant() {
       if (hadToken) {
         // Member used override token without authority — clear any draft, no echo
         setMessages([]);
-        setConversation(null);
       }
       return;
     }
@@ -93,7 +90,6 @@ export default function VantorisAssistant() {
       setMessages((prev) => [...prev, userMessage]);
       const result = await askOracle(contentForAgent);
       if (!result.ok) throw new Error(result.text || 'Assistant unavailable');
-      if (result.threadId) setConversation({ id: result.threadId });
       setMessages((prev) => [...prev, { role: 'assistant', content: result.text }]);
 
     } catch (err) {
