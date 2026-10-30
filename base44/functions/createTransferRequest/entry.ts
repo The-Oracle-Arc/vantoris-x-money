@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { claimPaymentOperation, registerPaymentTransfer, acquireLease, releaseLease, reserveOutgoingFunds } from '../_shared/paymentStore.ts';
+import { claimPaymentOperation, registerPaymentTransfer, acquireLease, releaseLease, reserveOutgoingFunds, recordPaymentAudit } from '../_shared/paymentStore.ts';
 
 const MAX_AMOUNT_CENTS = 100000000;
 const RAILS = new Set(['ACH', 'FEDWIRE', 'INTERNAL']);
@@ -70,6 +70,9 @@ export default async function(req: Request): Promise<Response> {
           base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
           sourceAccountRef: sourceAccountId, rail, amountCents: cents,
         });
+        await recordPaymentAudit({actorId:member.id,action:'outgoing_transfer_request_retried',
+          objectType:'transfer_request',objectId:prior.id,
+          details:{operationId:operation.id,rail,amountCents:cents,duplicate:true}});
         return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
       }
       if (!operation.created && operation.status !== 'accepted') {
@@ -114,6 +117,10 @@ export default async function(req: Request): Promise<Response> {
         base44TransferRequestId: request.id, idempotencyKey: `${member.id}:${key}`,
         sourceAccountRef: sourceAccountId, rail, amountCents: cents,
       });
+      await recordPaymentAudit({actorId:member.id,action:'outgoing_transfer_request_created',
+        objectType:'transfer_request',objectId:request.id,
+        details:{operationId:operation.id,rail,amountCents:cents,fundsHoldId:fundsReservation.holdId,
+          availableAfterReservationCents:fundsReservation.availableAfterCents}});
 
       await Promise.allSettled([
         base44.asServiceRole.entities.Notification.create({
