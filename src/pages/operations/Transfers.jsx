@@ -6,13 +6,18 @@ import { ArrowLeftRight } from 'lucide-react';
 
 export default function Transfers() {
   const [transactions, setTransactions] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const txns = await base44.entities.Transaction.list('-created_date', 200);
+        const [txns, transferRequests] = await Promise.all([
+          base44.entities.Transaction.list('-created_date', 200),
+          base44.entities.TransferRequest.list('-created_date', 200),
+        ]);
         setTransactions(txns.filter(t => t.type === 'adjustment'));
+        setRequests(transferRequests);
       } catch (e) { console.error(e); }
       setLoading(false);
     })();
@@ -20,6 +25,25 @@ export default function Transfers() {
 
   return (
     <OperationsPageLayout title="Transfers" description="Internal transfers and balance adjustments" icon={ArrowLeftRight}>
+      <section className="vantoris-card p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div><h2 className="text-white font-semibold">Bank transfer requests</h2><p className="text-[#AAB4C3] text-xs mt-1">ACH and domestic Fedwire · member requests only</p></div>
+          <span className="text-xs text-[#AAB4C3]">{requests.length} total</span>
+        </div>
+        {loading ? <p className="text-[#AAB4C3] text-sm">Loading requests…</p> : requests.length === 0 ? (
+          <p className="text-[#AAB4C3] text-sm">No bank transfer requests recorded.</p>
+        ) : (
+          <div className="space-y-3">{requests.map(r => (
+            <article key={r.id} className="rounded-xl border border-[#2B3543] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div><p className="text-white font-semibold text-sm">{r.rail} · {r.beneficiary_name || 'Beneficiary not supplied'}</p><p className="text-[#AAB4C3] text-xs mt-1">{r.beneficiary_bank_name || 'Bank not supplied'} · •••• {r.beneficiary_account_last4 || '----'}</p><p className="text-[#AAB4C3] text-[11px] mt-1">{r.user_id} · {r.created_date ? new Date(r.created_date).toLocaleString() : 'Date unavailable'}</p></div>
+                <div className="text-right shrink-0"><p className="text-white font-semibold">{formatCurrency((r.amount_cents || 0)/100)}</p><span className="inline-block mt-1 rounded-full bg-amber-500/10 text-amber-300 px-2 py-1 text-[10px] uppercase">{r.status}</span></div>
+              </div>
+              <p className="mt-3 text-xs text-amber-300">Not submitted to bank. Review and separate approvals required.</p>
+            </article>
+          ))}</div>
+        )}
+      </section>
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-2 border-brass/30 border-t-brass rounded-full animate-spin" />
