@@ -1,6 +1,8 @@
 name: Recovery build check
 
 on:
+  push:
+    branches: [recovery/merge-vantoris-live]
   pull_request:
     branches: [main]
   workflow_dispatch:
