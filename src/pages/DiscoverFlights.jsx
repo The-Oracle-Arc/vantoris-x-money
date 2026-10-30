@@ -2,17 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Plane, RefreshCw, MapPin } from 'lucide-react';
 
-/**
- * Live airborne sample via OpenSky (when CORS allows).
- * Falls back to last-known style sample so the UI never breaks.
- */
-const FALLBACK = [
-  { callsign: 'UAL442', origin_country: 'United States', baro_altitude: 10668, velocity: 240, true_track: 85, lat: 39.5, lon: -98.3 },
-  { callsign: 'BAW178', origin_country: 'United Kingdom', baro_altitude: 11200, velocity: 250, true_track: 270, lat: 51.2, lon: -5.1 },
-  { callsign: 'AAL100', origin_country: 'United States', baro_altitude: 9753, velocity: 230, true_track: 45, lat: 40.1, lon: -74.2 },
-  { callsign: 'DAL421', origin_country: 'United States', baro_altitude: 10058, velocity: 235, true_track: 180, lat: 33.6, lon: -84.4 },
-];
-
 function fmtAlt(m) {
   if (m == null) return '—';
   return `${Math.round(m * 3.28084).toLocaleString()} ft`;
@@ -54,9 +43,9 @@ export default function DiscoverFlights() {
       setFlights(rows);
       setSource('OpenSky Network · live ADS-B sample (CONUS window)');
     } catch (e) {
-      setFlights(FALLBACK);
-      setSource('Demo sample · live feed blocked or limited in this browser');
-      setError(e.message || 'Using offline sample');
+      setFlights([]);
+      setSource('Live feed unavailable');
+      setError('Live flight data is unavailable right now. No sample or simulated aircraft are displayed.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +92,7 @@ export default function DiscoverFlights() {
             <div className="py-12 flex justify-center">
               <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
             </div>
-          ) : (
+          ) : flights.length ? (
             flights.map((f) => (
               <div key={f.callsign + String(f.lat)} className="px-4 py-3 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-navy/5 flex items-center justify-center">
@@ -126,6 +115,8 @@ export default function DiscoverFlights() {
                 </div>
               </div>
             ))
+          ) : (
+            <div className="px-5 py-10 text-center text-sm text-slate-500">No live aircraft data is currently available for this area.</div>
           )}
         </div>
         <p className="text-[11px] text-slate-400 mt-4 leading-relaxed">
