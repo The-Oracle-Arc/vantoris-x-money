@@ -15,7 +15,7 @@ Deno.test('AVCU payment migration defines concurrency and ledger invariants',asy
     'UNIQUE (rail, bank_reference)',
     'UNIQUE (idempotency_key)',
     'reversal_of uuid UNIQUE',
-    'PRIMARY KEY (lock_name)'
+    'lock_name text PRIMARY KEY'
   ]) assert(sql.includes(unique),`Missing database uniqueness invariant: ${unique}`);
   for(const fn of ['acquire_lease','renew_lease','assert_lease','release_lease','assert_journal_balanced','audit_worker_lease_change'])
     assert(sql.includes(`FUNCTION avcu_payments.${fn}`),`Missing database function ${fn}`);
