@@ -198,8 +198,8 @@ CREATE OR REPLACE FUNCTION avcu_payments.assert_lease(
 )
 RETURNS boolean
 LANGUAGE sql
-STABLE
-AS $$
+VOLATILE
+AS $
   SELECT EXISTS (
     SELECT 1 FROM avcu_payments.worker_leases
      WHERE lock_name = p_lock_name
@@ -208,6 +208,32 @@ AS $$
        AND expires_at > clock_timestamp()
   );
 $$;
+
+CREATE OR REPLACE FUNCTION avcu_payments.renew_lease(
+  p_lock_name text,
+  p_owner_id uuid,
+  p_fencing_token bigint,
+  p_ttl_seconds integer DEFAULT 300
+)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $
+DECLARE changed integer;
+BEGIN
+  IF p_ttl_seconds < 15 OR p_ttl_seconds > 1800 THEN
+    RAISE EXCEPTION 'Invalid lease TTL';
+  END IF;
+  UPDATE avcu_payments.worker_leases
+     SET expires_at = clock_timestamp() + make_interval(secs => p_ttl_seconds),
+         updated_at = clock_timestamp()
+   WHERE lock_name = p_lock_name
+     AND owner_id = p_owner_id
+     AND fencing_token = p_fencing_token
+     AND expires_at > clock_timestamp();
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  RETURN changed = 1;
+END;
+$;
 
 CREATE OR REPLACE FUNCTION avcu_payments.release_lease(
   p_lock_name text,
