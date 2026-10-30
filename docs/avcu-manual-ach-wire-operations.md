@@ -71,12 +71,15 @@ Plaid-specific requirements:
 - Plaid's Transfer webhook is only a notification (`TRANSFER_EVENTS_UPDATE`). Fetch event details from `/transfer/event/sync`, persist the event cursor, and handle duplicates/out-of-order events. A notification alone must never change a transfer status.
 - Preserve provider transfer IDs separately from bank-generated references. Only store a bank reference when the provider/bank actually supplies one.
 
-Current code status:
+Current code status (manual workflow update):
 - Member intake creates an authenticated ACH/Fedwire request and does not debit an account.
 - Staff review/rejection and a separate second wire approver are implemented as server-side state transitions. Wire reviewer and approver IDs must differ.
-- ACH and Fedwire adapter contracts exist and are deliberately unconfigured/fail-closed. The submit endpoint also requires an approved state and provider-issued beneficiary account token.
-- Plaid webhook signature verification and notification intake are implemented, but the event-sync cursor and provider-specific event reconciliation still require completion and CI verification.
+- The new `recordManualTransferEvent` server function lets an authorized operator record a bank submission performed separately in the sponsor bank's approved portal. It requires the bank-generated reference and a secure evidence locator; it does not send money.
+- A second authorized finance/treasury/compliance/admin user can independently reconcile a manually submitted item as settled, returned, or failed. The verifier must differ from the submitting operator. Evidence locators, staff IDs, timestamps, references, and notes are recorded in the protected transfer record and audit log.
+- The Transfers operations screen now exposes manual submission and reconciliation actions for eligible statuses. The UI prompts staff for the bank reference and secure evidence location; it must never accept bank portal passwords or raw credentials.
+- ACH and Fedwire automated adapter contracts remain deliberately unconfigured/fail-closed. Automated submission also requires an approved state and provider-issued beneficiary account token.
+- Plaid webhook signature verification and notification intake are implemented, but event-sync cursor and provider-specific event reconciliation still require completion and CI verification.
 - No Plaid Production credentials, Transfer approval, wire enablement, sponsor-bank/core settlement connection, Plaid Link account tokenization, or real bank reference has been confirmed. Do not claim live money movement.
-- Review/approval state changes use Base44 entity updates. Before enabling bank submission, replace the read-then-update state transition with a transactional/conditional-write mechanism that prevents concurrent reviewers/approvers from racing. Add unique provider-event/idempotency constraints at the persistence layer.
+- Important remaining engineering gate: Base44 updates are currently read-then-update, not transactional compare-and-set. Before live bank submission or settlement, add race-safe conditional state transitions and persistence-level uniqueness for idempotency keys/provider events, then test role/RLS enforcement in the real backend.
 
 Release gate: keep the submission adapter fail-closed and keep this PR in draft until Plaid approves AVCU, production credentials and the correct account-linking/beneficiary flows are configured, race-safe approval persistence is verified, webhook sync/reconciliation passes tests, and an authorized low-value live test is completed under the provider's approved limits.
