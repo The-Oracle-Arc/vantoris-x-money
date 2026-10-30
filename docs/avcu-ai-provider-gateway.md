@@ -11,7 +11,7 @@ The member-facing Ask and Member Advisor surfaces call `/.netlify/functions/ask`
 5. Base44 Core `InvokeLLM`
 6. Optional OpenAI-compatible private endpoint
 
-Set `AI_PROVIDER_ORDER` to change the order. Unconfigured providers are skipped through a controlled failure and the next provider is attempted. The endpoint returns only the answer and provider label; provider keys never reach the browser.
+Set `AI_PROVIDER_ORDER` to change the order. Unconfigured providers are skipped through a controlled failure and the next provider is attempted. The endpoint returns only the answer and provider label; provider keys never reach the browser. Gemini credentials are sent in the API-key header rather than the request URL to reduce exposure in URL logs.
 
 ## Usage controls
 
