@@ -30,6 +30,7 @@ The spend ceiling is a reservation-based guard, not provider-invoice reconciliat
 
 Configure these in Netlify site environment variables (never in `VITE_*` variables):
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- For the Base44 Oracle runtime, set `AVCU_AI_GATEWAY_URL` to the deployed Netlify `/.netlify/functions/ask` endpoint, or set `AVCU_APP_URL` to the Netlify site origin so the function can derive that endpoint. The authenticated member bearer token is forwarded server-to-server; provider keys remain only in Netlify server environment variables.
 - `AI_PER_MINUTE_REQUESTS` (default 5)
 - One or more of `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`
 - Optional `AI_PROVIDER_ORDER`, model overrides, allowance and spend limits
