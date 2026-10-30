@@ -63,6 +63,11 @@ CREATE TABLE IF NOT EXISTS avcu_payments.provider_events (
   UNIQUE (provider_id, environment, provider_event_id)
 );
 
+
+ALTER TABLE avcu_payments.provider_events
+  ADD COLUMN IF NOT EXISTS amount_cents bigint CHECK (amount_cents IS NULL OR amount_cents > 0),
+  ADD COLUMN IF NOT EXISTS currency char(3) NOT NULL DEFAULT 'USD';
+
 CREATE TABLE IF NOT EXISTS avcu_payments.bank_receipts (
   id uuid PRIMARY KEY,
   rail text NOT NULL CHECK (rail IN ('ACH','FEDWIRE')),
