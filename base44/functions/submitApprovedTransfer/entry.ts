@@ -51,7 +51,15 @@ export default async function(req: Request): Promise<Response> {
     if (!reservation?.success || reservation.updated !== 1) {
       return Response.json({ error: 'This transfer is already being submitted or its status changed. Do not retry until checked.' }, { status: 409 });
     }
-    await setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'processing');
+    try {
+      await setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'processing');
+    } catch {
+      await base44.asServiceRole.entities.TransferRequest.updateMany(
+        { id: transfer.id, status: 'submitting_to_bank' },
+        { $set: { status: 'submission_unknown', submission_error: 'Payment operation store could not confirm the reservation.' } },
+      ).catch(()=>null);
+      return Response.json({ error: 'Payment operation store could not confirm this submission. No bank request was sent; reconcile before retrying.' }, { status: 503 });
+    }
 
     let result;
     try {
