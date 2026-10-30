@@ -39,24 +39,31 @@ async function reserveUsage(userId, monthlyLimit) {
   const day = now.toISOString().slice(0, 10);
   const userKey = `avcu:ai:user:${userId}:${month}`;
   const spendKey = `avcu:ai:spend:${day}`;
+  const minuteKey = `avcu:ai:minute:${userId}:${Math.floor(Date.now() / 60000)}`;
+  const perMinuteLimit = Math.max(1, Number(process.env.AI_PER_MINUTE_REQUESTS || 5));
   const script = [
     "local u = tonumber(redis.call('GET', KEYS[1]) or '0')",
     "local s = tonumber(redis.call('GET', KEYS[2]) or '0')",
+    "local m = tonumber(redis.call('GET', KEYS[3]) or '0')",
     "local ul = tonumber(ARGV[1])",
     "local sc = tonumber(ARGV[2])",
     "local sl = tonumber(ARGV[3])",
+    "local ml = tonumber(ARGV[4])",
     "if u >= ul then return {0, u, s, 'user_limit'} end",
     "if s + sc > sl then return {0, u, s, 'daily_budget'} end",
+    "if m >= ml then return {0, u, s, 'minute_limit'} end",
     "u = redis.call('INCR', KEYS[1])",
     "s = redis.call('INCRBY', KEYS[2], sc)",
+    "m = redis.call('INCR', KEYS[3])",
     "redis.call('EXPIRE', KEYS[1], 2678400)",
     "redis.call('EXPIRE', KEYS[2], 172800)",
+    "redis.call('EXPIRE', KEYS[3], 120)",
     "return {1, u, s, 'ok'}",
   ].join('; ');
   const response = await fetch(url.replace(/\\/$/, ''), {
     method: 'POST',
     headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-    body: JSON.stringify(['EVAL', script, '2', userKey, spendKey, String(monthlyLimit), String(MAX_REQUEST_COST_CENTS), String(MAX_DAILY_SPEND_CENTS)]),
+    body: JSON.stringify(['EVAL', script, '3', userKey, spendKey, minuteKey, String(monthlyLimit), String(MAX_REQUEST_COST_CENTS), String(MAX_DAILY_SPEND_CENTS), String(perMinuteLimit)]),
   });
   if (!response.ok) throw new Error('usage_store_unavailable');
   const payload = await response.json();
