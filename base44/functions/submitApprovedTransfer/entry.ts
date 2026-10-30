@@ -8,6 +8,8 @@ import { getTransferRailAdapter } from '../_shared/transferRails.ts';
 
 const SUBMIT_ROLES = new Set(['admin', 'administrator', 'super_administrator', 'finance_officer', 'treasury_officer']);
 export default async function(req: Request): Promise<Response> {
+  let submissionReserved = false;
+  let providerCallStarted = false;
   if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
   try {
     const base44 = createClientFromRequest(req);
@@ -59,6 +61,7 @@ export default async function(req: Request): Promise<Response> {
     if (!reservation?.success || reservation.updated !== 1) {
       return Response.json({ error: 'This transfer is already being submitted or its status changed. Do not retry until checked.' }, { status: 409 });
     }
+    submissionReserved = true;
     try {
       await setPaymentOperationStatus(`${transfer.user_id}:${transfer.idempotency_key}`,'processing');
     } catch {
@@ -72,6 +75,7 @@ export default async function(req: Request): Promise<Response> {
     const providerIdempotencyKey = await deriveProviderIdempotencyKey(transfer.user_id,transfer.idempotency_key);
     let result;
     try {
+      providerCallStarted = true;
       result = await adapter.submit({
         transferRequestId: transfer.id,
         amountCents: transfer.amount_cents,
@@ -128,6 +132,20 @@ export default async function(req: Request): Promise<Response> {
     return Response.json({ submitted: true, provider_transfer_id: result.providerTransferId, bank_reference: result.bankReference || '', status: result.status });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Transfer provider unavailable.';
+    if (submissionReserved) {
+      // Once the request is reserved, unexpected failures must never be reported
+      // as definitely not submitted. The provider may have accepted it before a
+      // later persistence failure; lock it for reconciliation instead.
+      // The existing nested error handlers persist `unknown` for provider
+      // exceptions. This outer path may fail before that point, so do not
+      // overwrite the payment-operation record without a trusted key lookup.
+      return Response.json({
+        error: providerCallStarted
+          ? 'Provider execution may have started, but finalization failed. Transfer locked for reconciliation; do not resubmit.'
+          : 'Submission reservation was created but failed before the provider call. Reconcile the locked request before retrying.',
+        execution: providerCallStarted ? 'unknown' : 'not_submitted',
+      }, { status: 503 });
+    }
     return Response.json({ error: message, execution: 'not_submitted' }, { status: 503 });
   }
 }
