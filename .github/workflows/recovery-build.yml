@@ -83,29 +83,34 @@ jobs:
               return [name, schema];
             })
           );
-          for (const name of ['Account', 'Transaction', 'WithdrawalRequest', 'TransferRequest', 'TransferWebhookEvent']) {
+          for (const name of ['Account', 'Transaction', 'WithdrawalRequest']) {
             const rls = schemas[name].rls;
             for (const action of ['create', 'update', 'delete']) {
-              if (rls[action] !== false) {
-                throw new Error(`${name}.${action} must remain denied until a trusted server workflow exists`);
+              if (rls[action] !== false) throw new Error(`${name}.${action} must remain denied to direct clients`);
+            }
+          }
+          for (const name of ['TransferRequest', 'TransferWebhookEvent']) {
+            const rls = schemas[name].rls;
+            for (const action of ['create', 'update']) {
+              if (rls[action]?.user_condition?.role !== 'admin') {
+                throw new Error(`${name}.${action} must be restricted to the Base44 admin service role`);
               }
             }
+            if (rls.delete !== false) throw new Error(`${name}.delete must remain denied`);
           }
           for (const action of ['create', 'read', 'update', 'delete']) {
             const rule = schemas.Notification.rls[action];
-            if (!rule || rule['data.user_id'] !== '{{user.id}}') {
-              throw new Error(`Notification.${action} must be scoped to the signed-in owner`);
+            const clauses = Array.isArray(rule?.$or) ? rule.$or : [rule];
+            const ownerScoped = clauses.some((clause) => clause['data.user_id'] === '{{user.id}}');
+            const adminScoped = clauses.some((clause) => clause.user_condition?.role === 'admin');
+            if (!ownerScoped || !adminScoped) {
+              throw new Error(`Notification.${action} must be owner-scoped with admin service access`);
             }
           }
           if (!schemas.Transaction.rls.read || !schemas.Account.rls.read) {
             throw new Error('Account and Transaction read policies must remain explicitly defined');
           }
-          for (const name of ['TransferRequest', 'TransferWebhookEvent']) {
-            for (const action of ['create', 'update', 'delete']) {
-              if (schemas[name]?.rls?.[action] !== false) throw new Error(`${name}.${action} must be server-only`);
-            }
-          }
-          const transfer = schemas.TransferRequest;
+                    const transfer = schemas.TransferRequest;
           for (const status of ['awaiting_dual_approval', 'approved_awaiting_bank_submission', 'submitted_to_bank', 'pending_settlement', 'settled', 'rejected']) {
             if (!transfer.properties.status.enum.includes(status)) throw new Error(`Missing transfer status: ${status}`);
           }
