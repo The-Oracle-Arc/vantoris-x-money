@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getTransferRailAdapter } from '../_shared/transferRails.ts';
-import { registerPaymentTransfer, setProviderTransferReference, setPaymentOperationStatus } from '../_shared/paymentStore.ts';
+import { registerPaymentTransfer, setProviderTransferReference, setPaymentOperationStatus, deriveProviderIdempotencyKey } from '../_shared/paymentStore.ts';
 
 const SUBMIT_ROLES = new Set(['admin', 'administrator', 'super_administrator', 'finance_officer', 'treasury_officer']);
 export default async function(req: Request): Promise<Response> {
@@ -61,13 +61,14 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Payment operation store could not confirm this submission. No bank request was sent; reconcile before retrying.' }, { status: 503 });
     }
 
+    const providerIdempotencyKey = await deriveProviderIdempotencyKey(transfer.user_id,transfer.idempotency_key);
     let result;
     try {
       result = await adapter.submit({
         transferRequestId: transfer.id,
         amountCents: transfer.amount_cents,
         currency: 'USD',
-        idempotencyKey: transfer.idempotency_key,
+        idempotencyKey: providerIdempotencyKey,
         beneficiary: {
           name: transfer.beneficiary_name,
           bankName: transfer.beneficiary_bank_name,
