@@ -245,7 +245,7 @@ export async function getProviderCursor(providerId: string, environment: 'sandbo
  * a held event, never a guessed ledger posting. */
 export async function processPlaidProviderEvent(input: {
   providerEventId: string; environment: 'sandbox' | 'production';
-  clearingLedgerAccountId: string;
+  clearingLedgerAccountIds: { ACH: string; FEDWIRE: string };
 }): Promise<{ status: string; journalId?: string; reason?: string }> {
   return await database().begin(async tx => {
     const [event] = await tx`
