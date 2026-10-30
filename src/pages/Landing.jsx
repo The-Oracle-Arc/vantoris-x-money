@@ -31,12 +31,13 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import ShieldLogo from '@/components/vantoris/ShieldLogo';
+import { PROVIDERS } from '@/lib/providers';
 
 const NAV = [
   { label: 'Verified', href: '#verified' },
-  { label: 'Wallets', href: '#wallets' },
-  { label: 'Cards', href: '#card-gallery' },
-  { label: 'Statements', href: '#statements' },
+  { label: 'Services', href: '#service-availability' },
+  { label: 'Cards', href: '#service-availability' },
+  
   { label: 'About', href: '#about' },
   { label: 'Banking', href: '#banking' },
   { label: 'Invest', href: '#invest' },
@@ -488,113 +489,31 @@ export default function Landing() {
         </section>
 
 
-        {/* Member experience — visual references, never presented as live account data. */}
-        <section id="member-preview" className="scroll-mt-24 bg-[#F4F6F9] border-y border-slate-200 py-16 sm:py-20">
+        <section id="service-availability" className="scroll-mt-24 bg-[#F4F6F9] border-y border-slate-200 py-16 sm:py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="max-w-3xl">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-amber-700 mb-3">Member experience · design preview</p>
-              <h2 className="font-heading text-3xl sm:text-5xl font-bold tracking-tight text-navy">
-                A clearer view of your money.
-              </h2>
-              <p className="mt-4 text-slate-600 leading-relaxed">
-                Account overview, quick actions, and account types are shown here as visual concepts. Your signed-in workspace uses your authorized account records—not the sample balances or activity pictured in these references.
-              </p>
-            </div>
-
-            <div className="mt-9 grid lg:grid-cols-12 gap-5 items-start">
-              <figure className="lg:col-span-7 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
-                <img
-                  src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0986.jpeg"
-                  alt="Illustrative desktop-sized member banking dashboard concept"
-                  className="block w-full h-auto"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <figcaption className="px-4 py-3 text-xs leading-relaxed text-slate-500">
-                  Dashboard layout reference only. The institution branding, balances, dates, and transactions in this image are not Vantoris account data.
-                </figcaption>
-              </figure>
-
-              <div className="lg:col-span-5 grid sm:grid-cols-2 lg:grid-cols-1 gap-5">
-                <figure className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md">
-                  <img
-                    src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0987.jpeg"
-                    alt="Illustrative mobile banking home screen concept"
-                    className="block w-full h-auto max-h-[480px] object-contain bg-[#F7F4EC]"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <figcaption className="px-4 py-3 text-xs leading-relaxed text-slate-500">
-                    Mobile composition reference; not a live screen or account statement.
-                  </figcaption>
-                </figure>
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-navy text-white">
-                      <Landmark size={20} aria-hidden="true" />
-                    </span>
-                    <div>
-                      <h3 className="font-heading font-bold text-navy">Account choices</h3>
-                      <p className="text-xs text-slate-500">Product-card design reference</p>
-                    </div>
-                  </div>
-                  <img
-                    src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0982.jpeg"
-                    alt="Illustrative grid of checking, savings, certificate, and holiday account product cards"
-                    className="mt-4 block w-full h-auto rounded-xl"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                    Product names, rates, eligibility, and insurance claims must be confirmed for Vantoris before being represented as available services.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/register" className="inline-flex items-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white hover:bg-[#0E2A4A] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                Get started <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-              <Link to="/login" className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-navy hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                Member sign in
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Wallet pricing — transparent US-style schedule */}
-        <section id="wallets" className="scroll-mt-24 bg-white border-b border-slate-200 py-16">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass mb-3">Wallets · pricing</p>
-            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-navy">Clear pricing on every wallet</h2>
-            <p className="mt-3 text-slate-600 max-w-2xl font-body">
-              Membership wallets follow a simple published schedule. Third-party rails (cards, wires, FX)
-              may add network costs disclosed before you confirm.
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass mb-3">Provider connectivity</p>
+            <h2 className="font-heading text-3xl sm:text-4xl font-bold text-navy">Services, backed by real connections</h2>
+            <p className="mt-4 max-w-3xl text-slate-600 leading-relaxed">
+              AVCU displays a service as connected only when its production provider is configured and verified.
+              Internal records, sample artwork, and design concepts are not presented as live banking or payment services.
             </p>
-            <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { name: 'Primary checking', fee: '$0 / mo', note: 'Core member wallet', img: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=600&q=80' },
-                { name: 'Savings', fee: '$0 / mo', note: 'Yield subject to product terms', img: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=600&q=80' },
-                { name: 'Debit card', fee: '$0 issue*', note: '*Replacement may apply', img: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=600&q=80' },
-                { name: 'Domestic wire out', fee: 'From $15', note: 'Shown before you send', img: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80' },
-              ].map((w) => (
-                <article key={w.name} className="rounded-2xl border border-slate-200 overflow-hidden bg-[#F4F6F9] shadow-sm">
-                  <div className="h-28 relative">
-                    <img src={w.img} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute inset-0 bg-navy/40" />
+            <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.values(PROVIDERS).filter((provider) => ['financialAccount', 'payments', 'cards', 'statements', 'investment', 'flights', 'flightTracking', 'homes', 'shipping', 'donations', 'identity'].includes(provider.id)).map((provider) => (
+                <article key={provider.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold text-navy">{provider.label}</h3>
+                    <span className={provider.status === 'connected' ? 'rounded-full bg-emerald-50 text-emerald-800 px-2.5 py-1 text-[10px] font-bold uppercase' : 'rounded-full bg-slate-100 text-slate-600 px-2.5 py-1 text-[10px] font-bold uppercase'}>
+                      {provider.status === 'connected' ? 'Connected' : 'Not connected'}
+                    </span>
                   </div>
-                  <div className="p-4">
-                    <p className="font-heading font-bold text-navy">{w.name}</p>
-                    <p className="font-mono text-lg text-brass font-semibold mt-1">{w.fee}</p>
-                    <p className="text-xs text-slate-500 mt-1">{w.note}</p>
-                  </div>
+                  <p className="mt-3 text-sm text-slate-600 leading-relaxed">{provider.note}</p>
                 </article>
               ))}
             </div>
-            <p className="mt-6 text-[11px] text-slate-400">
-              Schedule is illustrative for the Vantoris member platform and can vary by eligibility and jurisdiction.
-            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link to="/register" className="rounded-full bg-navy text-white px-5 py-3 text-sm font-bold">Create membership</Link>
+              <Link to="/login" className="rounded-full border border-slate-300 bg-white text-navy px-5 py-3 text-sm font-semibold">Member sign in</Link>
+            </div>
           </div>
         </section>
 
@@ -617,156 +536,6 @@ export default function Landing() {
                 {['Member assistant', 'Ops command', 'Image & templates', 'Secure chat'].map((x) => (
                   <span key={x} className="rounded-full border border-white/20 px-3 py-1 text-xs font-medium">{x}</span>
                 ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CARD GALLERY — American banking card standards look */}
-        <section id="card-gallery" className="scroll-mt-24 max-w-6xl mx-auto px-4 sm:px-6 py-20">
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brass mb-3">Cards · public preview · no login</p>
-          <h2 className="font-heading text-3xl sm:text-5xl font-bold text-navy tracking-tight">
-            Plastic that looks <span className="font-display italic font-normal text-brass">expensive</span> on purpose
-          </h2>
-          <p className="mt-3 text-slate-600 max-w-2xl font-body">
-            Emboss-style number blocks, network-ready layouts, contactless mark, and member name line—
-            the visual language Americans expect from major issuers. Sample art only; issuance requires verification.
-          </p>
-          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Debit */}
-            <div className="aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-[#0A1628] via-[#0E2A4A] to-[#071C38] text-white p-5 flex flex-col justify-between shadow-xl border border-white/10 relative overflow-hidden">
-              <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_80%_20%,#C9A22755,transparent_45%)]" />
-              <div className="relative flex justify-between items-start">
-                <span className="font-heading font-bold tracking-wide">Vantoris</span>
-                <span className="text-[10px] font-mono uppercase text-white/50">Debit</span>
-              </div>
-              <div className="relative">
-                <div className="w-10 h-7 rounded bg-gradient-to-br from-amber-200 to-amber-500 mb-4 opacity-90" title="Chip" />
-                <p className="font-mono text-lg tracking-[0.2em]">•••• •••• •••• 4412</p>
-              </div>
-              <div className="relative flex justify-between items-end">
-                <div>
-                  <p className="text-[9px] uppercase text-white/40 font-mono">Member</p>
-                  <p className="text-sm font-semibold tracking-wide">YOUR NAME</p>
-                </div>
-                <p className="text-xs font-heading text-brass">Contactless ready</p>
-              </div>
-            </div>
-            {/* Credit */}
-            <div className="aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-[#1a1a1a] via-[#2a2118] to-[#0d0d0d] text-white p-5 flex flex-col justify-between shadow-xl border border-brass/30 relative overflow-hidden">
-              <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_80%,#C9A22744,transparent_50%)]" />
-              <div className="relative flex justify-between items-start">
-                <span className="font-heading font-bold tracking-wide">Vantoris</span>
-                <span className="text-[10px] font-mono uppercase text-brass">Credit</span>
-              </div>
-              <div className="relative">
-                <div className="w-10 h-7 rounded bg-gradient-to-br from-amber-200 to-amber-500 mb-4" />
-                <p className="font-mono text-lg tracking-[0.2em]">•••• •••• •••• 8891</p>
-              </div>
-              <div className="relative flex justify-between items-end">
-                <div>
-                  <p className="text-[9px] uppercase text-white/40 font-mono">Member since</p>
-                  <p className="text-sm font-semibold">2026</p>
-                </div>
-                <p className="text-xs text-white/60">Eligible after review</p>
-              </div>
-            </div>
-            {/* Business */}
-            <div className="aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-[#0B3D2E] to-[#071C38] text-white p-5 flex flex-col justify-between shadow-xl border border-white/10 sm:col-span-2 lg:col-span-1">
-              <div className="flex justify-between">
-                <span className="font-heading font-bold">Vantoris</span>
-                <span className="text-[10px] font-mono text-emerald-300/80 uppercase">Business</span>
-              </div>
-              <p className="font-mono text-lg tracking-[0.2em]">•••• •••• •••• 2204</p>
-              <p className="text-sm text-white/70">Operating spend · dual control ready</p>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link to="/register?intent=cards" className="rounded-full bg-navy text-white px-5 py-2.5 text-sm font-bold">
-              Request card access
-            </Link>
-            <a href="#statements" onClick={(e) => onNavClick(e, '#statements')} className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-navy">
-              See statement design
-            </a>
-          </div>
-        </section>
-
-        {/* STATEMENTS — elite professional */}
-        <section id="statements" className="scroll-mt-24 bg-[#0B1220] text-white py-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brass mb-3">Statements · public sample</p>
-            <h2 className="font-display text-4xl sm:text-5xl italic text-white/95 leading-tight">
-              Elite. Legible.<br />Boardroom-ready.
-            </h2>
-            <p className="mt-3 text-white/60 max-w-2xl font-body">
-              Account statements use institutional hierarchy: period header, account mask, opening/closing
-              balance, transaction grid, and disclosure footer—the pattern U.S. banks and wealth desks use.
-            </p>
-            <figure className="mb-8 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-              <img
-                src="https://raw.githubusercontent.com/iamtheoracle/vantoris-x-money/main/IMG_0983.jpeg"
-                alt="Illustrative Atchison Village Credit Union monthly statement layout"
-                className="block w-full h-auto"
-                loading="lazy"
-              />
-              <figcaption className="px-4 py-3 text-xs text-white/55">
-                Visual reference only — the figures, account details, and contact information in this artwork are not live member data.
-              </figcaption>
-            </figure>
-            <div className="mt-10 rounded-2xl bg-white text-navy shadow-2xl overflow-hidden border border-white/10">
-              <div className="bg-navy text-white px-6 py-4 flex flex-wrap justify-between gap-2">
-                <div>
-                  <p className="font-heading font-bold text-lg">Vantoris</p>
-                  <p className="font-mono text-[10px] text-white/50 tracking-wider">MEMBER STATEMENT · SAMPLE</p>
-                </div>
-                <div className="text-right text-sm">
-                  <p className="font-mono text-white/70">Statement period</p>
-                  <p className="font-semibold">Sep 1 – Sep 30, 2026</p>
-                </div>
-              </div>
-              <div className="px-6 py-5 border-b border-slate-100 grid sm:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-[10px] uppercase text-slate-400 font-mono">Account</p>
-                  <p className="font-semibold">Primary Checking ·••• 4821</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase text-slate-400 font-mono">Opening balance</p>
-                  <p className="font-mono font-semibold tabular-nums">$12,450.00</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase text-slate-400 font-mono">Closing balance</p>
-                  <p className="font-mono font-semibold tabular-nums text-emerald-700">$14,208.42</p>
-                </div>
-              </div>
-              <div className="px-6 py-2">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="text-[10px] uppercase tracking-wider text-slate-400 font-mono border-b border-slate-100">
-                      <th className="py-2 font-medium">Date</th>
-                      <th className="py-2 font-medium">Description</th>
-                      <th className="py-2 font-medium text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-body">
-                    {[
-                      ['09/03', 'Direct deposit · Payroll', '+$3,200.00'],
-                      ['09/08', 'ACH · Utilities', '−$164.20'],
-                      ['09/14', 'Card · Market', '−$86.44'],
-                      ['09/22', 'Transfer · Savings', '−$500.00'],
-                      ['09/28', 'Wire in · Client', '+$1,309.06'],
-                    ].map(([d, desc, amt]) => (
-                      <tr key={d + desc} className="border-b border-slate-50">
-                        <td className="py-2.5 font-mono text-xs text-slate-500">{d}</td>
-                        <td className="py-2.5">{desc}</td>
-                        <td className={`py-2.5 text-right font-mono text-xs font-semibold ${amt.startsWith('+') ? 'text-emerald-700' : 'text-navy'}`}>{amt}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="px-6 py-4 bg-slate-50 text-[11px] text-slate-500 font-body">
-                Sample illustration only. Live statements generate after membership verification and account activity.
-                Retain copies for your records. Dispute windows follow platform terms.
               </div>
             </div>
           </div>
