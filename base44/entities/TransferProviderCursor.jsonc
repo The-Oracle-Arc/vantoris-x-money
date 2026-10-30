@@ -1,0 +1,68 @@
+{
+  "name": "TransferProviderCursor",
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string"
+    },
+    "cursor_name": {
+      "type": "string"
+    },
+    "after_event_id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "updated_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_id",
+    "cursor_name",
+    "after_event_id"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
+}
