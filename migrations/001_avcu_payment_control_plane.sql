@@ -199,7 +199,7 @@ CREATE OR REPLACE FUNCTION avcu_payments.assert_lease(
 RETURNS boolean
 LANGUAGE sql
 VOLATILE
-AS $
+AS $$
   SELECT EXISTS (
     SELECT 1 FROM avcu_payments.worker_leases
      WHERE lock_name = p_lock_name
@@ -217,7 +217,7 @@ CREATE OR REPLACE FUNCTION avcu_payments.renew_lease(
 )
 RETURNS boolean
 LANGUAGE plpgsql
-AS $
+AS $$
 DECLARE changed integer;
 BEGIN
   IF p_ttl_seconds < 15 OR p_ttl_seconds > 1800 THEN
@@ -233,7 +233,7 @@ BEGIN
   GET DIAGNOSTICS changed = ROW_COUNT;
   RETURN changed = 1;
 END;
-$;
+$$;
 
 CREATE OR REPLACE FUNCTION avcu_payments.release_lease(
   p_lock_name text,
