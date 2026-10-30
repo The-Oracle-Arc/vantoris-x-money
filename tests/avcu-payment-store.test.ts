@@ -4,7 +4,7 @@ import {
   ingestProviderEvent, postBalancedJournal, reverseJournal, closePaymentStore,
 } from '../base44/functions/_shared/paymentStore.ts';
 
-const enabled = !!Deno.env.get('AVCU_LEDGER_DATABASE_URL');
+const enabled = !!Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL');
 Deno.test({
   name: 'AVCU PostgreSQL payment store integration',
   ignore: !enabled,
@@ -36,16 +36,19 @@ Deno.test({
       const leaseA=await acquireLease(lockName,ownerA,15);
       assert(leaseA);
       assertEquals(await acquireLease(lockName,ownerB,15),null);
-      assertEquals(await renewLease(leaseA!,15),true);
-      assertEquals(await releaseLease(leaseA!),true);
+      await new Promise(resolve=>setTimeout(resolve,16000));
       const leaseB=await acquireLease(lockName,ownerB,15);
       assert(leaseB);
       assert(leaseB!.fencingToken>leaseA!.fencingToken);
+      assertEquals(await renewLease(leaseA!,15),false);
+      assertEquals(await releaseLease(leaseA!),false);
+      assertEquals(await renewLease(leaseB!,15),true);
+      assertEquals(await releaseLease(leaseB!),true);
 
       const accountA=crypto.randomUUID(), accountB=crypto.randomUUID();
       // Test fixture accounts are intentionally unique and isolated.
       const postgres = (await import('npm:postgres@3.4.7')).default;
-      const db=postgres(Deno.env.get('AVCU_LEDGER_DATABASE_URL')!,{ssl:'require',prepare:false});
+      const db=postgres(Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL')!,{ssl:'require',prepare:false});
       await db`INSERT INTO avcu_payments.ledger_accounts(id,external_account_ref,account_type) VALUES
         (${accountA},${'test:'+accountA},'member_deposit'),
         (${accountB},${'test:'+accountB},'bank_clearing')`;
@@ -55,16 +58,20 @@ Deno.test({
             {ledgerAccountId:accountA,amountCents:1000},{ledgerAccountId:accountB,amountCents:-1000}
           ]});
         assertEquals(journal.duplicate,false);
-        const duplicate=await postBalancedJournal({sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
+        const retries=await Promise.all(Array.from({length:8},()=>postBalancedJournal({
+          sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
           description:'Integration test journal',entries:[
             {ledgerAccountId:accountA,amountCents:1000},{ledgerAccountId:accountB,amountCents:-1000}
-          ]});
-        assertEquals(duplicate.journalId,journal.journalId);
+          ]
+        })));
+        assertEquals(new Set(retries.map(x=>x.journalId)).size,1);
+        assertEquals(retries.filter(x=>!x.duplicate).length,0);
+        assertEquals(retries[0].journalId,journal.journalId);
         const reversal=await reverseJournal({originalJournalId:journal.journalId,
           idempotencyKey:`reversal-${key}`,actorId:'integration-test',reason:'Integration test reversal'});
         assertEquals(reversal.duplicate,false);
       } finally {
-        await db`DELETE FROM avcu_payments.ledger_accounts WHERE id IN (${accountA},${accountB})`;
+        // The test database is disposable; ledger rows are append-only by design.
         await db.end({timeout:5});
       }
     } finally {
