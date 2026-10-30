@@ -126,14 +126,14 @@ export default async function(req: Request): Promise<Response> {
         base44.asServiceRole.entities.Notification.create({
           user_id: member.id,
           title: 'Transfer request received',
-          message: 'Your transfer request is recorded for bank and operations review. No funds have been moved.',
+          message: 'Your transfer request is recorded for review. Funds are reserved from available balance; no bank transfer has been sent.',
           type: 'info',
           read: false,
         }),
         base44.asServiceRole.entities.AuditLog.create({
           action_type: 'transfer_request_created',
           description: `Member submitted an outgoing ${rail} transfer request`,
-          details: JSON.stringify({ transferRequestId: request.id, amount_cents: cents, currency: 'USD' }),
+          details: JSON.stringify({ transferRequestId: request.id, amount_cents: cents, currency: 'USD', fundsReserved: true }),
           target_user_id: member.id,
           user_id: member.id,
         }),
