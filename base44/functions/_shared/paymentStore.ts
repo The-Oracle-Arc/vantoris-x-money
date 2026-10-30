@@ -165,7 +165,7 @@ export interface Lease {
 export async function acquireLease(lockName: string, ownerId = uuid(), ttlSeconds = 300): Promise<Lease | null> {
   const rows = await database()`SELECT * FROM avcu_payments.acquire_lease(${lockName}, ${ownerId}, ${ttlSeconds})`;
   const row = rows[0];
-  return row?.acquired ? { lockName, ownerId, fencingToken: Number(row.fencing_token), expiresAt: row.expires_at } : null;
+  return row?.acquired ? { lockName, ownerId, fencingToken: Number(row.fencing_token), expiresAt: new Date(row.expires_at).toISOString() } : null;
 }
 export async function renewLease(lease: Lease, ttlSeconds = 300): Promise<boolean> {
   const [row] = await database()`SELECT avcu_payments.renew_lease(${lease.lockName}, ${lease.ownerId}, ${lease.fencingToken}, ${ttlSeconds}) AS renewed`;
@@ -310,13 +310,20 @@ export async function processPlaidProviderEvent(input: {
     if (rawType === 'posted' || rawType === 'settled') {
       nextStatus = 'settled';
       if (!transfer.settled_journal_id) {
+        const clearingAccountId = transfer.rail === 'ACH'
+          ? input.clearingLedgerAccountIds.ACH : input.clearingLedgerAccountIds.FEDWIRE;
+        if (!clearingAccountId) {
+          await tx`UPDATE avcu_payments.provider_events SET processing_status='held'
+            WHERE id=${event.id}`;
+          return { status:'held', reason:'Approved clearing ledger account is not configured for this rail.' };
+        }
         const [memberLedger] = await tx`
           SELECT id FROM avcu_payments.ledger_accounts
            WHERE external_account_ref=${transfer.source_account_ref} AND currency=${transfer.currency}
         `;
         const [clearing] = await tx`
           SELECT id FROM avcu_payments.ledger_accounts
-           WHERE id=${transfer.rail === 'ACH' ? input.clearingLedgerAccountIds.ACH : input.clearingLedgerAccountIds.FEDWIRE} AND account_type='bank_clearing'
+           WHERE id=${clearingAccountId} AND account_type='bank_clearing'
              AND currency=${transfer.currency}
         `;
         if (!memberLedger || !clearing) {
