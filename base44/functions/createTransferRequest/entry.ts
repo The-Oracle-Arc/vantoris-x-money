@@ -46,7 +46,8 @@ export default async function(req: Request): Promise<Response> {
       idempotency_key: key,
     });
     if (existing?.length) {
-      return Response.json({ request: existing[0], duplicate: true }, { status: 200 });
+      const prior = existing[0];
+      return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
     }
 
     const request = await base44.asServiceRole.entities.TransferRequest.create({
@@ -83,7 +84,7 @@ export default async function(req: Request): Promise<Response> {
     ]);
 
     return Response.json({
-      request,
+      request: { id: request.id, rail: request.rail, amount_cents: request.amount_cents, status: request.status },
       execution: 'not_submitted',
       message: 'Request recorded. It has not been sent to a bank and no balance was debited.',
     }, { status: 201 });
