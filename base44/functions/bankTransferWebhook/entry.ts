@@ -46,7 +46,7 @@ async function verifyPlaidWebhook(rawBody: string, token: string, clientId: stri
     const validSignature = await crypto.subtle.verify(
       { name: 'ECDSA', hash: 'SHA-256' },
       publicKey,
-      decodeBase64Url(parts[2]),
+      decodeBase64Url(parts[2]).buffer as ArrayBuffer,
       new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
     );
     if (!validSignature) return false;
