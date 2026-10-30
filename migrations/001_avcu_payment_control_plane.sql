@@ -16,22 +16,6 @@ CREATE TABLE IF NOT EXISTS avcu_payments.provider_cursors (
   PRIMARY KEY (provider_id, environment)
 );
 
-CREATE TABLE IF NOT EXISTS avcu_payments.payment_transfers (
-  id uuid PRIMARY KEY,
-  base44_transfer_request_id text NOT NULL UNIQUE,
-  idempotency_key text NOT NULL UNIQUE,
-  source_account_ref text NOT NULL,
-  provider_id text,
-  provider_transfer_id text UNIQUE,
-  rail text NOT NULL CHECK (rail IN ('ACH','FEDWIRE')),
-  amount_cents bigint NOT NULL CHECK (amount_cents > 0),
-  currency char(3) NOT NULL DEFAULT 'USD' CHECK (currency = 'USD'),
-  status text NOT NULL,
-  settled_journal_id uuid UNIQUE REFERENCES avcu_payments.ledger_journals(id),
-  last_event_sequence bigint,
-  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
-);
 
 CREATE TABLE IF NOT EXISTS avcu_payments.payment_operations (
   id uuid PRIMARY KEY,
@@ -104,6 +88,23 @@ CREATE TABLE IF NOT EXISTS avcu_payments.ledger_journals (
   reversal_of uuid UNIQUE REFERENCES avcu_payments.ledger_journals(id),
   created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   UNIQUE (source_type, source_id)
+);
+
+CREATE TABLE IF NOT EXISTS avcu_payments.payment_transfers (
+  id uuid PRIMARY KEY,
+  base44_transfer_request_id text NOT NULL UNIQUE,
+  idempotency_key text NOT NULL UNIQUE,
+  source_account_ref text NOT NULL,
+  provider_id text,
+  provider_transfer_id text UNIQUE,
+  rail text NOT NULL CHECK (rail IN ('ACH','FEDWIRE')),
+  amount_cents bigint NOT NULL CHECK (amount_cents > 0),
+  currency char(3) NOT NULL DEFAULT 'USD' CHECK (currency = 'USD'),
+  status text NOT NULL,
+  settled_journal_id uuid UNIQUE REFERENCES avcu_payments.ledger_journals(id),
+  last_event_sequence bigint,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
 CREATE TABLE IF NOT EXISTS avcu_payments.ledger_entries (
