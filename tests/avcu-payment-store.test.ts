@@ -1,4 +1,13 @@
-import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+function assert(condition:unknown,message='Assertion failed'):asserts condition {
+  if(!condition) throw new Error(message);
+}
+function assertEquals<T>(actual:T,expected:T):void {
+  if(actual!==expected) throw new Error(`Expected ${String(expected)}, received ${String(actual)}`);
+}
+async function assertRejects(fn:()=>Promise<unknown>):Promise<Error> {
+  try { await fn(); } catch(error) { return error instanceof Error ? error : new Error(String(error)); }
+  throw new Error('Expected operation to reject');
+}
 import {
   acquireLease, releaseLease, renewLease, claimPaymentOperation,
   ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent,
