@@ -33,6 +33,26 @@ jobs:
         run: |
           deno check base44/functions/oracleRuntime/entry.ts
           deno test --allow-env base44/shared/runtime/nexus.test.ts
+      - name: Prevent direct browser AI execution paths
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, existsSync } from 'node:fs';
+          const surfaces = [
+            'src/components/vantoris/AgentChat.jsx',
+            'src/components/vantoris/VantorisAssistant.jsx',
+            'src/components/vantoris/MemberAdvisorChat.jsx',
+          ];
+          for (const file of surfaces) {
+            const source = readFileSync(file, 'utf8');
+            if (/base44\\.agents\\.|\\/\\.netlify\\/functions\\/ask|\\/api\\/ask/.test(source)) {
+              throw new Error('Direct AI execution path found in ' + file);
+            }
+          }
+          const shared = readFileSync('src/lib/oracleAssistant.js', 'utf8');
+          if (!shared.includes("functions.invoke('oracleRuntime'")) throw new Error('Shared Oracle runtime client is missing');
+          if (existsSync('server/llm-proxy.mjs')) throw new Error('Obsolete standalone private-model proxy still exists');
+          console.log('Assistant entry points use the shared Oracle runtime.');
+          NODE
       - name: Validate entity JSON and security rules
         run: |
           node --input-type=module <<'NODE'
