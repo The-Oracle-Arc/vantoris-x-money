@@ -536,14 +536,16 @@ export async function recordIncomingReceipt(input: {
       ON CONFLICT DO NOTHING RETURNING id,verification_status
     `;
     if (rows.length) return {id:rows[0].id,duplicate:false,status:rows[0].verification_status};
-    const [prior] = await tx`
-      SELECT id,verification_status,member_account_ref,amount_cents,rail,bank_reference
+    const matches = await tx`
+      SELECT id,verification_status,member_account_ref,amount_cents,rail,bank_reference,idempotency_key
         FROM avcu_payments.bank_receipts
        WHERE idempotency_key=${input.idempotencyKey}
           OR (rail=${input.rail} AND bank_reference=${input.bankReference})
        FOR UPDATE
     `;
-    if (!prior || prior.member_account_ref!==input.memberAccountRef ||
+    const prior=matches[0];
+    if (matches.length!==1 || !prior || prior.idempotency_key!==input.idempotencyKey ||
+        prior.member_account_ref!==input.memberAccountRef ||
         Number(prior.amount_cents)!==input.amountCents || prior.rail!==input.rail ||
         prior.bank_reference!==input.bankReference) throw new Error('INCOMING_RECEIPT_IDEMPOTENCY_CONFLICT');
     return {id:prior.id,duplicate:true,status:prior.verification_status};
