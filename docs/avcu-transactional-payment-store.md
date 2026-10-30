@@ -28,6 +28,10 @@ The server-side adapter is wired into outgoing transfer idempotency, Plaid event
 9. Add tests for concurrent duplicate keys, duplicate bank references, stale lease takeover, stale-owner fencing, unbalanced journals, duplicate journals, exact reversals, process crashes and retry after ambiguous provider timeouts.
 10. Only after the adapter and tests pass may payment paths be switched from Base44-only persistence to this transactional authority.
 
+## Additional outgoing-payment control still required
+
+The current outgoing journal is posted when a verified provider event reports settlement. It does **not** yet reserve member available balance before provider submission. Before any live outgoing ACH/Fedwire rail is enabled, implement an atomic pre-submission funds hold against the member ledger, serialize concurrent holds on the same account, and release or reclassify that hold on failed, settled and returned events. Until that control and available-balance reconciliation are implemented and tested, do not treat this as a complete available-balance ledger or permit real-money submission.
+
 ## Data mapping still required
 
 - Map each verified AVCU account to one `ledger_accounts.external_account_ref` using an approved immutable account identifier.
