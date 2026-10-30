@@ -8,6 +8,20 @@ export default function Transfers() {
   const [transactions, setTransactions] = useState([]);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busyRequestId, setBusyRequestId] = useState(null);
+
+  async function actOnRequest(requestId, action) {
+    const note = action === 'reject' ? (window.prompt('Reason for rejection (required):') || '').trim() : (window.prompt('Review note (optional):') || '').trim();
+    if (action === 'reject' && !note) return;
+    setBusyRequestId(requestId);
+    try {
+      await base44.functions.invoke('reviewTransferRequest', { request_id: requestId, action, note });
+      const refreshed = await base44.entities.TransferRequest.list('-created_date', 200);
+      setRequests(refreshed);
+    } catch (error) {
+      window.alert(error?.message || 'The review action could not be recorded. No bank transfer was executed.');
+    } finally { setBusyRequestId(null); }
+  }
 
   useEffect(() => {
     (async () => {
@@ -40,6 +54,11 @@ export default function Transfers() {
                 <div className="text-right shrink-0"><p className="text-white font-semibold">{formatCurrency((r.amount_cents || 0)/100)}</p><span className="inline-block mt-1 rounded-full bg-amber-500/10 text-amber-300 px-2 py-1 text-[10px] uppercase">{r.status}</span></div>
               </div>
               <p className="mt-3 text-xs text-amber-300">Not submitted to bank. Review and separate approvals required.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {r.status === 'awaiting_bank_review' && <button disabled={busyRequestId === r.id} onClick={() => actOnRequest(r.id, 'review')} className="rounded-lg bg-sky-500/15 text-sky-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Mark reviewed</button>}
+                {r.status === 'awaiting_dual_approval' && <button disabled={busyRequestId === r.id} onClick={() => actOnRequest(r.id, 'approve_second')} className="rounded-lg bg-emerald-500/15 text-emerald-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Second wire approval</button>}
+                {['awaiting_bank_review', 'awaiting_dual_approval'].includes(r.status) && <button disabled={busyRequestId === r.id} onClick={() => actOnRequest(r.id, 'reject')} className="rounded-lg bg-red-500/15 text-red-200 px-3 py-2 text-xs font-semibold disabled:opacity-50">Reject</button>}
+              </div>
             </article>
           ))}</div>
         )}
