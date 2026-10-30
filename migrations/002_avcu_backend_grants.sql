@@ -21,6 +21,7 @@ GRANT SELECT, INSERT ON
 TO avcu_backend;
 
 GRANT USAGE, SELECT ON SEQUENCE avcu_payments.payment_audit_id_seq TO avcu_backend;
+GRANT USAGE, SELECT ON SEQUENCE avcu_payments.payment_outbox_id_seq TO avcu_backend;
 
 GRANT EXECUTE ON FUNCTION avcu_payments.acquire_lease(text, uuid, integer) TO avcu_backend;
 GRANT EXECUTE ON FUNCTION avcu_payments.assert_lease(text, uuid, bigint) TO avcu_backend;
