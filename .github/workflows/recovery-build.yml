@@ -25,7 +25,14 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
-      - run: node --check netlify/functions/ask.mjs && node --check server/llm-proxy.mjs
+      - run: node --check netlify/functions/ask.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Validate and test Oracle runtime
+        run: |
+          deno check base44/functions/oracleRuntime/entry.ts
+          deno test --allow-env base44/shared/runtime/nexus.test.ts
       - name: Validate entity JSON and security rules
         run: |
           node --input-type=module <<'NODE'
