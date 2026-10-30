@@ -137,6 +137,11 @@ Deno.test({
         assertEquals(new Set(retries.map(x=>x.journalId)).size,1);
         assertEquals(retries.filter(x=>!x.duplicate).length,0);
         assertEquals(retries[0].journalId,journal.journalId);
+        await assertRejects(()=>postBalancedJournal({
+          sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
+          description:'Conflicting idempotency payload',
+          entries:[{ledgerAccountId:accountA,amountCents:2000},{ledgerAccountId:accountB,amountCents:-2000}]
+        }));
         const reversal=await reverseJournal({originalJournalId:journal.journalId,
           idempotencyKey:`reversal-${key}`,actorId:'integration-test',reason:'Integration test reversal'});
         assertEquals(reversal.duplicate,false);
