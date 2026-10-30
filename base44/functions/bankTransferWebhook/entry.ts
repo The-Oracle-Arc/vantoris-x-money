@@ -78,8 +78,7 @@ export default async function(req: Request): Promise<Response> {
     const payload = JSON.parse(rawBody);
     const webhookType = typeof payload.webhook_type === 'string' ? payload.webhook_type : '';
     const webhookCode = typeof payload.webhook_code === 'string' ? payload.webhook_code : '';
-    const itemId = typeof payload.item_id === 'string' ? payload.item_id : '';
-    if (webhookType !== 'TRANSFER' || webhookCode !== 'TRANSFER_EVENTS_UPDATE' || !itemId) {
+    if (webhookType !== 'TRANSFER' || webhookCode !== 'TRANSFER_EVENTS_UPDATE') {
       return Response.json({ accepted: true, ignored: true }, { status: 200 });
     }
 
