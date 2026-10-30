@@ -40,6 +40,7 @@ const DOMAIN_CONFIG = {
           { label: 'Pending Deposits', path: '/operations/deposits', icon: ArrowDownToLine },
           { label: 'Pending Withdrawals', path: '/operations/withdrawals', icon: ArrowUpRight },
           { label: 'Transfers', path: '/operations/transfers', icon: ArrowLeftRight },
+          { label: 'Incoming Bank Receipts', path: '/operations/incoming-bank-receipts', icon: ArrowDownToLine },
           { label: 'Cards', path: '/operations/cards', icon: CreditCard },
           { label: 'Bulk Import', path: '/operations/bulk-import', icon: FileUp },
           { label: 'Documents', path: '/operations/documents', icon: FolderOpen },
