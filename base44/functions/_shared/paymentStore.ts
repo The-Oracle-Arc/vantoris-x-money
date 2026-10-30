@@ -333,8 +333,8 @@ export async function processPlaidProviderEvent(input: {
         `;
         await tx`
           INSERT INTO avcu_payments.ledger_entries(id,journal_id,ledger_account_id,currency,amount_cents)
-          VALUES (${uuid()},${journalId},${memberLedger.id},${transfer.currency},${-Number(transfer.amount_cents)}),
-                 (${uuid()},${journalId},${clearing.id},${transfer.currency},${Number(transfer.amount_cents)})
+          VALUES (${uuid()},${journalId},${memberLedger.id},${transfer.currency},${Number(transfer.amount_cents)}),
+                 (${uuid()},${journalId},${clearing.id},${transfer.currency},${-Number(transfer.amount_cents)})
         `;
       } else journalId = transfer.settled_journal_id;
       await tx`UPDATE avcu_payments.payment_transfers
@@ -595,8 +595,8 @@ export async function verifyAndPostIncomingReceipt(input:{
           ${'incoming-receipt:'+receipt.id},${receipt.currency},'Verified incoming bank receipt')`;
       await tx`INSERT INTO avcu_payments.ledger_entries
         (id,journal_id,ledger_account_id,currency,amount_cents)
-        VALUES (${uuid()},${journalId},${clearing.id},${receipt.currency},${-Number(receipt.amount_cents)}),
-               (${uuid()},${journalId},${memberLedger.id},${receipt.currency},${Number(receipt.amount_cents)})`;
+        VALUES (${uuid()},${journalId},${clearing.id},${receipt.currency},${Number(receipt.amount_cents)}),
+               (${uuid()},${journalId},${memberLedger.id},${receipt.currency},${-Number(receipt.amount_cents)})`;
       await tx`UPDATE avcu_payments.bank_receipts SET verification_status='verified_received',
         verified_by=${input.actorId},ledger_journal_id=${journalId}
         WHERE id=${receipt.id}`;
