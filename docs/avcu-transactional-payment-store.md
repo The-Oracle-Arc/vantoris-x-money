@@ -11,9 +11,9 @@ This migration establishes a PostgreSQL foundation for:
 - append-only, balanced double-entry journals;
 - expiring worker leases with monotonically increasing fencing tokens.
 
-## Critical: not yet connected to live payment paths
+## Critical: code is wired, infrastructure is not activated
 
-This is a schema foundation only. It does not make Plaid production-ready, create a sponsor-bank relationship, tokenize beneficiaries, move funds, or activate ledger posting. The application currently continues to use Base44 entities. Do not represent the PostgreSQL tables as active until the database is provisioned, the migration is applied, the backend adapter is implemented, and integration tests pass.
+The server-side adapter is wired into outgoing transfer idempotency, Plaid event-page ingestion, provider-event settlement/reversal processing, incoming receipt idempotency and independent receipt verification/posting. It also uses a retryable outbox to project committed payment state into Base44. This is code-level integration only: no PostgreSQL instance is provisioned or connected in this environment, the migration has not been applied, ledger accounts are not mapped, and the database integration tests have not been run. Do not treat these paths as live until the infrastructure and release gates below pass.
 
 ## Deployment requirements
 
@@ -22,7 +22,7 @@ This is a schema foundation only. It does not make Plaid production-ready, creat
 3. Configure `AVCU_ACH_CLEARING_LEDGER_ACCOUNT_ID` and `AVCU_FEDWIRE_CLEARING_LEDGER_ACCOUNT_ID` only after Finance and the sponsor bank approve and provision the corresponding clearing accounts. These IDs are required for settlement journal posting.
 4. Apply `migrations/001_avcu_payment_control_plane.sql` through a reviewed migration process.
 5. Create a least-privilege backend role. Do not grant database access to member/browser clients.
-6. Use the server-side adapter at `base44/functions/_shared/paymentStore.ts`; it claims outgoing transfer idempotency in PostgreSQL before creating the Base44 request projection, persists Plaid event pages and cursors in one transaction, and commits provider settlement/reversal journals with a retryable Base44 projection outbox. Add further server-side adapters that runs each payment operation, idempotency claim, provider-event claim and ledger journal in a single SQL transaction.
+6. Use the server-side adapter at `base44/functions/_shared/paymentStore.ts`; it claims outgoing transfer idempotency in PostgreSQL before creating the Base44 request projection, persists Plaid event pages and cursors in one transaction, commits provider settlement/reversal journals, and verifies/posts/returns incoming receipts through transactional journals with a retryable Base44 projection outbox. Keep each payment operation, idempotency claim, provider-event claim and ledger journal in one SQL transaction.
 7. Require `assert_lease` and the current fencing token before committing work performed by a leased worker. A stale worker must fail after a new owner acquires the lease.
 8. Build a reversal as a new journal with entries exactly opposite the original journal, in the same transaction; never edit or delete posted entries.
 9. Add tests for concurrent duplicate keys, duplicate bank references, stale lease takeover, stale-owner fencing, unbalanced journals, duplicate journals, exact reversals, process crashes and retry after ambiguous provider timeouts.
@@ -37,4 +37,4 @@ This is a schema foundation only. It does not make Plaid production-ready, creat
 
 ## Release status
 
-**Blocked / not production-connected.** The SQL migration has not been applied to a database, and no runtime payment code uses it yet. Existing Base44 duplicate pre-checks remain non-atomic. Real-money transfers must remain disabled until all gates above and sponsor-bank/Plaid approvals are complete.
+**Blocked / not production-connected.** Code paths now use the PostgreSQL adapter, but the migration has not been applied, no database connection is configured, integration tests have not run, and account/clearing mappings are not provisioned. Real-money transfers must remain disabled until all gates above and sponsor-bank/Plaid approvals are complete.
