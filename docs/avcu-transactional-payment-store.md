@@ -52,3 +52,15 @@ Manual bank submission recording now requires an active matching funds hold. Man
 ## Release status
 
 **Blocked / not production-connected.** Code paths now use the PostgreSQL adapter, but the migration has not been applied, no database connection is configured, integration tests have not run, and account/clearing mappings are not provisioned. Real-money transfers must remain disabled until all gates above and sponsor-bank/Plaid approvals are complete.
+
+## Account-level serialization and reserved-balance protection
+
+Every balance-changing path must lock affected `ledger_accounts` rows in ascending UUID order before inserting ledger entries or changing active holds. This is the shared serialization point used by reservations, normal ledger postings, settlement capture, provider failure/cancellation release, incoming receipt posting, and journal reversals.
+
+`postBalancedJournal` computes the member account's projected available balance while holding that account lock. A debit is rejected if it would reduce posted balance below active outgoing holds. Idempotent journal retries are accepted only when the stored currency, source identity, and complete account/amount entry set match the original journal; reusing a key with changed financial content is an integrity conflict.
+
+The hold transition SQL function locks the member account before locking the hold row. Do not add a new direct write path to `ledger_entries` or `outgoing_funds_holds` without following this lock order and preserving the invariant:
+
+`posted member balance - active outgoing holds >= 0`
+
+These controls are implemented in code and covered by static and opt-in PostgreSQL integration tests. They are not considered operationally verified until the integration suite runs against a provisioned PostgreSQL test database and CI passes on the latest commit.
