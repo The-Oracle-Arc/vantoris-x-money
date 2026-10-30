@@ -33,7 +33,9 @@ export const SHIPMENT_STATES = [
 
 /** Config flags. Flip only when a real adapter is wired. */
 export const PROVIDERS = {
-  financialAccount: { id: 'financialAccount', label: 'USD account', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'Member Account records are internal application records, not a verified core-banking connection or live available balance.' },
+  financialAccount: { id: 'financialAccount', label: 'Core banking', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'Member Account records are internal application records, not a verified core-banking connection or live available balance.' },
+  statements: { id: 'statements', label: 'Bank statements', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'PDF layout generation exists, but bank-originated statement data and reconciliation are not connected.' },
+  investment: { id: 'investment', label: 'Investments', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'No authorized broker, custodian, market-data, or investment funding provider is connected.' },
   payments: { id: 'payments', label: 'Payments', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'Send requires a payments provider. Not connected.' },
   cards: { id: 'cards', label: 'Cards', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'No card issuer connected. Existing card records display only if the backend returns them.' },
   flights: { id: 'flights', label: 'Flights', status: PROVIDER_STATUS.NOT_CONFIGURED, note: 'No licensed flight inventory or booking provider connected.' },
