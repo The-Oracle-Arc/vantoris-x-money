@@ -12,7 +12,15 @@ function createServices(base44, request) {
   const authorization = request?.headers?.get?.('authorization') || '';
   const gatewayUrl = Deno.env.get('AVCU_AI_GATEWAY_URL') || '';
   const appUrl = Deno.env.get('AVCU_APP_URL') || '';
-  const endpoint = gatewayUrl || (appUrl ? new URL('/.netlify/functions/ask', appUrl).toString() : '');
+  let endpoint = '';
+  try {
+    const candidate = gatewayUrl || (appUrl ? new URL('/.netlify/functions/ask', appUrl).toString() : '');
+    const parsed = candidate ? new URL(candidate) : null;
+    if (parsed?.protocol === 'https:') endpoint = parsed.toString();
+    else if (candidate) logger.error('AI gateway URL rejected: HTTPS is required');
+  } catch {
+    logger.error('AI gateway URL rejected: invalid URL');
+  }
 
   return {
     model: {
@@ -80,9 +88,9 @@ function createServices(base44, request) {
     health: {
       async runAll() {
         return {
-          status: endpoint ? 'ok' : 'degraded',
-          gateway: { status: endpoint ? 'configured' : 'not_configured' },
-          conversationStore: { status: 'configured' },
+          status: endpoint ? 'configured_unverified' : 'degraded',
+          gateway: { status: endpoint ? 'configured_unverified' : 'not_configured' },
+          conversationStore: { status: 'wired_unverified' },
           modelRegistry: { status: 'ok', models: ModelRegistry.list().length },
           promptRegistry: { status: 'ok', prompts: PromptRegistry.list().length },
           policyRegistry: { status: 'ok', policies: PolicyRegistry.list().length },
