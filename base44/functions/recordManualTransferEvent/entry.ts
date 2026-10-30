@@ -102,7 +102,14 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    const updated = await base44.asServiceRole.entities.TransferRequest.update(requestId, update);
+    const claim = await base44.asServiceRole.entities.TransferRequest.updateMany(
+      { id: requestId, status: transfer.status },
+      { $set: update },
+    );
+    if (!claim?.success || claim.updated !== 1) {
+      return Response.json({ error: 'Another staff action changed this transfer. Refresh and verify its current bank status.' }, { status: 409 });
+    }
+    const updated = await base44.asServiceRole.entities.TransferRequest.get(requestId);
     await base44.asServiceRole.entities.AuditLog.create({
       action_type: `manual_transfer_${action}`,
       description: `Manual ${action.replaceAll('_', ' ')} recorded for ${transfer.rail}`,
