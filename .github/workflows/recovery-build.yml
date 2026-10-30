@@ -32,6 +32,11 @@ jobs:
       - name: Validate and test Oracle runtime
         run: |
           deno check --node-modules-dir=auto base44/functions/oracleRuntime/entry.ts
+          deno check --node-modules-dir=auto base44/functions/createTransferRequest/entry.ts
+          deno check --node-modules-dir=auto base44/functions/reviewTransferRequest/entry.ts
+          deno check --node-modules-dir=auto base44/functions/submitApprovedTransfer/entry.ts
+          deno check --node-modules-dir=auto base44/functions/bankTransferWebhook/entry.ts
+          deno check --node-modules-dir=auto base44/functions/reconcileBankTransfers/entry.ts
           deno test --node-modules-dir=auto --allow-env base44/shared/runtime/nexus.test.ts
       - name: Prevent direct browser AI execution paths
         run: |
@@ -71,7 +76,7 @@ jobs:
               return [name, schema];
             })
           );
-          for (const name of ['Account', 'Transaction', 'WithdrawalRequest']) {
+          for (const name of ['Account', 'Transaction', 'WithdrawalRequest', 'TransferRequest', 'TransferWebhookEvent']) {
             const rls = schemas[name].rls;
             for (const action of ['create', 'update', 'delete']) {
               if (rls[action] !== false) {
@@ -87,6 +92,15 @@ jobs:
           }
           if (!schemas.Transaction.rls.read || !schemas.Account.rls.read) {
             throw new Error('Account and Transaction read policies must remain explicitly defined');
+          }
+          for (const name of ['TransferRequest', 'TransferWebhookEvent']) {
+            for (const action of ['create', 'update', 'delete']) {
+              if (schemas[name]?.rls?.[action] !== false) throw new Error(`${name}.${action} must be server-only`);
+            }
+          }
+          const transfer = schemas.TransferRequest;
+          for (const status of ['awaiting_dual_approval', 'approved_awaiting_bank_submission', 'submitted_to_bank', 'pending_settlement', 'settled', 'rejected']) {
+            if (!transfer.properties.status.enum.includes(status)) throw new Error(`Missing transfer status: ${status}`);
           }
           console.log(`Validated ${files.length} entity schemas, denied client financial writes, and owner-scoped notification access.`);
           NODE
