@@ -1,0 +1,134 @@
+import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import {
+  acquireLease, releaseLease, renewLease, claimPaymentOperation,
+  ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent, closePaymentStore,
+} from '../base44/functions/_shared/paymentStore.ts';
+
+const enabled = !!Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL');
+Deno.test({
+  name: 'AVCU PostgreSQL payment store integration',
+  ignore: !enabled,
+  sanitizeOps: false,
+  sanitizeResources: false,
+  async fn() {
+    const key = `test-${crypto.randomUUID()}`;
+    try {
+      const claims = await Promise.all(Array.from({length:20},()=>claimPaymentOperation({
+        operationType:'integration_test', idempotencyKey:key, request:{amount:100,nonce:key}
+      })));
+      assertEquals(claims.filter(x=>x.created).length,1);
+      assertEquals(new Set(claims.map(x=>x.id)).size,1);
+
+      const mismatch = await assertRejects(()=>claimPaymentOperation({
+        operationType:'integration_test', idempotencyKey:key, request:{amount:101,nonce:key}
+      }));
+      assert(mismatch.message.includes('IDEMPOTENCY_CONFLICT'));
+
+      const eventKey=`evt-${crypto.randomUUID()}`;
+      const eventInput={providerId:'test-provider',environment:'sandbox' as const,
+        providerEventId:eventKey,eventType:'TEST',payload:{eventKey,amount:1},verifiedAt:new Date().toISOString()};
+      const events=await Promise.all(Array.from({length:10},()=>ingestProviderEvent(eventInput)));
+      assertEquals(events.filter(x=>!x.duplicate).length,1);
+      assertEquals(new Set(events.map(x=>x.id)).size,1);
+
+      const lockName=`test-lock-${crypto.randomUUID()}`;
+      const ownerA=crypto.randomUUID(), ownerB=crypto.randomUUID();
+      const leaseA=await acquireLease(lockName,ownerA,15);
+      assert(leaseA);
+      assertEquals(await acquireLease(lockName,ownerB,15),null);
+      await new Promise(resolve=>setTimeout(resolve,16000));
+      const leaseB=await acquireLease(lockName,ownerB,15);
+      assert(leaseB);
+      assert(leaseB!.fencingToken>leaseA!.fencingToken);
+      assertEquals(await renewLease(leaseA!,15),false);
+      assertEquals(await releaseLease(leaseA!),false);
+      assertEquals(await renewLease(leaseB!,15),true);
+      assertEquals(await releaseLease(leaseB!),true);
+
+      const accountA=crypto.randomUUID(), accountB=crypto.randomUUID();
+      // Test fixture accounts are intentionally unique and isolated.
+      const postgres = (await import('npm:postgres@3.4.7')).default;
+      const db=postgres(Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL')!,{ssl:'require',prepare:false});
+      await db`INSERT INTO avcu_payments.ledger_accounts(id,external_account_ref,account_type) VALUES
+        (${accountA},${'test:'+accountA},'member_deposit'),
+        (${accountB},${'test:'+accountB},'bank_clearing')`;
+      try {
+        const journal=await postBalancedJournal({sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
+          description:'Integration test journal',entries:[
+            {ledgerAccountId:accountA,amountCents:1000},{ledgerAccountId:accountB,amountCents:-1000}
+          ]});
+        assertEquals(journal.duplicate,false);
+        const retries=await Promise.all(Array.from({length:8},()=>postBalancedJournal({
+          sourceType:'test',sourceId:key,idempotencyKey:`journal-${key}`,
+          description:'Integration test journal',entries:[
+            {ledgerAccountId:accountA,amountCents:1000},{ledgerAccountId:accountB,amountCents:-1000}
+          ]
+        })));
+        assertEquals(new Set(retries.map(x=>x.journalId)).size,1);
+        assertEquals(retries.filter(x=>!x.duplicate).length,0);
+        assertEquals(retries[0].journalId,journal.journalId);
+        const reversal=await reverseJournal({originalJournalId:journal.journalId,
+          idempotencyKey:`reversal-${key}`,actorId:'integration-test',reason:'Integration test reversal'});
+        assertEquals(reversal.duplicate,false);
+        const reversalRetry=await reverseJournal({originalJournalId:journal.journalId,
+          idempotencyKey:`reversal-${key}`,actorId:'integration-test',reason:'Integration test reversal'});
+        assertEquals(reversalRetry.journalId,reversal.journalId);
+        await assertRejects(()=>reverseJournal({originalJournalId:journal.journalId,
+          idempotencyKey:`different-reversal-${key}`,actorId:'integration-test',reason:'Second reversal'}));
+
+        const transferId=crypto.randomUUID();
+        const providerTransferId=`plaid-test-${key}`;
+        await db`INSERT INTO avcu_payments.payment_transfers
+          (id,base44_transfer_request_id,idempotency_key,source_account_ref,provider_id,
+           provider_transfer_id,rail,amount_cents,status)
+          VALUES (${transferId},${'base44-test:'+key},${'transfer-test:'+key},
+            ${'test:'+accountA},'plaid',${providerTransferId},'ACH',1000,'submitted_to_bank')`;
+        const postedEventId=crypto.randomUUID();
+        await db`INSERT INTO avcu_payments.provider_events
+          (id,provider_id,environment,provider_event_id,transfer_reference,event_type,
+           event_sequence,payload_hash,amount_cents,currency,verified_at)
+          VALUES (${postedEventId},'plaid','sandbox',${'posted:'+key},${providerTransferId},
+            'posted',1,${'a'.repeat(64)},1000,'USD',clock_timestamp())`;
+        const posted=await processPlaidProviderEvent({
+          providerEventId:`posted:${key}`,environment:'sandbox',
+          clearingLedgerAccountIds:{ACH:accountB,FEDWIRE:accountB}
+        });
+        assertEquals(posted.status,'settled');
+        assert(posted.journalId);
+        const returnedEventId=crypto.randomUUID();
+        await db`INSERT INTO avcu_payments.provider_events
+          (id,provider_id,environment,provider_event_id,transfer_reference,event_type,
+           event_sequence,payload_hash,amount_cents,currency,verified_at)
+          VALUES (${returnedEventId},'plaid','sandbox',${'returned:'+key},${providerTransferId},
+            'returned',2,${'b'.repeat(64)},1000,'USD',clock_timestamp())`;
+        const returned=await processPlaidProviderEvent({
+          providerEventId:`returned:${key}`,environment:'sandbox',
+          clearingLedgerAccountIds:{ACH:accountB,FEDWIRE:accountB}
+        });
+        assertEquals(returned.status,'returned');
+        assert(returned.journalId);
+        const balances=await db`
+          SELECT count(*)::int AS entry_count, sum(amount_cents)::bigint AS net
+            FROM avcu_payments.ledger_entries WHERE journal_id=${returned.journalId}
+        `;
+        assertEquals(balances[0].entry_count,2);
+        assertEquals(Number(balances[0].net),0);
+
+        await assertRejects(()=>db.begin(async tx=>{
+          const badId=crypto.randomUUID();
+          await tx`INSERT INTO avcu_payments.ledger_journals
+            (id,source_type,source_id,idempotency_key,currency,description)
+            VALUES (${badId},'test_unbalanced',${key},${'bad:'+key},'USD','Must fail')`;
+          await tx`INSERT INTO avcu_payments.ledger_entries
+            (id,journal_id,ledger_account_id,currency,amount_cents)
+            VALUES (${crypto.randomUUID()},${badId},${accountA},'USD',100)`;
+        }));
+      } finally {
+        // The test database is disposable; ledger rows are append-only by design.
+        await db.end({timeout:5});
+      }
+    } finally {
+      await closePaymentStore();
+    }
+  }
+});
