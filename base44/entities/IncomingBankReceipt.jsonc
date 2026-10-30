@@ -1,0 +1,151 @@
+{
+  "name": "IncomingBankReceipt",
+  "type": "object",
+  "properties": {
+    "member_user_id": {
+      "type": "string"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "rail": {
+      "type": "string",
+      "enum": [
+        "ACH",
+        "FEDWIRE"
+      ]
+    },
+    "amount_cents": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000000
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "USD"
+      ],
+      "default": "USD"
+    },
+    "bank_reference": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string"
+    },
+    "evidence_reference": {
+      "type": "string",
+      "description": "Protected evidence locator, not a public URL or login credential."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "awaiting_verification",
+        "verified_received",
+        "returned",
+        "rejected"
+      ],
+      "default": "awaiting_verification"
+    },
+    "recorded_by_user_id": {
+      "type": "string"
+    },
+    "recorded_at": {
+      "type": "string"
+    },
+    "record_note": {
+      "type": "string"
+    },
+    "verified_by_user_id": {
+      "type": "string"
+    },
+    "verified_at": {
+      "type": "string"
+    },
+    "verification_evidence_reference": {
+      "type": "string"
+    },
+    "verification_note": {
+      "type": "string"
+    },
+    "ledger_posting_status": {
+      "type": "string",
+      "enum": [
+        "not_posted",
+        "posted"
+      ],
+      "default": "not_posted"
+    },
+    "ledger_transaction_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "member_user_id",
+    "account_id",
+    "rail",
+    "amount_cents",
+    "currency",
+    "bank_reference",
+    "idempotency_key",
+    "evidence_reference",
+    "status"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "$or": [
+        {
+          "data.member_user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_manager"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "compliance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        }
+      ]
+    },
+    "update": false,
+    "delete": false
+  }
+}
