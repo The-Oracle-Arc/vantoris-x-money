@@ -17,6 +17,7 @@ Set `AI_PROVIDER_ORDER` to change the order. Unconfigured providers are skipped 
 
 The gateway requires Upstash Redis REST credentials and fails closed if the usage store is unavailable. An atomic Lua reservation applies:
 - Per-user monthly request allowance (default 30 for free members).
+- Per-user burst limit (default 5 requests per minute).
 - Higher monthly allowance (default 300) for user IDs explicitly listed in the server-only `AI_SUBSCRIBER_USER_IDS` environment variable.
 - A global daily reserved-spend ceiling, using a conservative fixed reservation per request.
 - A maximum output-token limit per request.
@@ -29,6 +30,7 @@ The spend ceiling is a reservation-based guard, not provider-invoice reconciliat
 
 Configure these in Netlify site environment variables (never in `VITE_*` variables):
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- `AI_PER_MINUTE_REQUESTS` (default 5)
 - One or more of `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`
 - Optional `AI_PROVIDER_ORDER`, model overrides, allowance and spend limits
 - `AI_SUBSCRIBER_USER_IDS` only after confirming subscription entitlement out-of-band
