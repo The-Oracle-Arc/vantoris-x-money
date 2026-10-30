@@ -61,6 +61,25 @@
         "sandbox",
         "production"
       ]
+    },
+    "provider_api_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "provider_event_sequence": {
+      "type": "integer"
+    },
+    "event_timestamp": {
+      "type": "string"
+    },
+    "transfer_type": {
+      "type": "string"
+    },
+    "account_id": {
+      "type": "string"
+    },
+    "failure_reason": {
+      "type": "string"
     }
   },
   "required": [
