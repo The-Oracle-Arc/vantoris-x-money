@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { assertStaffIsNotRequester } from '../_shared/paymentAuthorization.ts';
+import { hasActiveOutgoingFundsHold } from '../_shared/paymentStore.ts';
 
 const STAFF_ROLES = new Set([
   'admin', 'administrator', 'super_administrator', 'executive',
@@ -42,6 +43,20 @@ export default async function(req: Request): Promise<Response> {
     } catch {
       return Response.json({ error: 'Separation of duties: the requester cannot record or reconcile their own manual transfer.' }, { status: 403 });
     }
+    if (action === 'record_submission') {
+      const holdActive = await hasActiveOutgoingFundsHold({
+        idempotencyKey: `${transfer.user_id}:${transfer.idempotency_key}`,
+        amountCents: transfer.amount_cents,
+      });
+      if (!holdActive) {
+        return Response.json({ error: 'A matching active funds reservation is required before manual bank submission.' }, { status: 409 });
+      }
+    } else {
+      return Response.json({
+        error: 'Manual settlement, return and failure posting are disabled until the PostgreSQL ledger reconciliation transaction is implemented. Do not mark this transfer settled manually.',
+      }, { status: 503 });
+    }
+
     const now = new Date().toISOString();
     let update: Record<string, unknown>;
 
