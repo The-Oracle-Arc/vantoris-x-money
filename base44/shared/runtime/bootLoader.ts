@@ -74,6 +74,7 @@ function createServices(base44, request) {
     health: {
       async runAll() {
         return {
+          status: endpoint ? 'ok' : 'degraded',
           gateway: { status: endpoint ? 'configured' : 'not_configured' },
           conversationStore: { status: 'configured' },
           modelRegistry: { status: 'ok', models: ModelRegistry.list().length },
