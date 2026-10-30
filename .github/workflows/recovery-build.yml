@@ -44,7 +44,7 @@ jobs:
           ];
           for (const file of surfaces) {
             const source = readFileSync(file, 'utf8');
-            if (/base44\\.agents\\.|\\/\\.netlify\\/functions\\/ask|\\/api\\/ask/.test(source)) {
+            if (source.includes('base44.agents.') || source.includes('/.netlify/functions/ask') || source.includes('/api/ask')) {
               throw new Error('Direct AI execution path found in ' + file);
             }
           }
