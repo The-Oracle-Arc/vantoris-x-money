@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { claimPaymentOperation, registerPaymentTransfer, acquireLease, releaseLease } from '../_shared/paymentStore.ts';
+import { claimPaymentOperation, registerPaymentTransfer, acquireLease, releaseLease, reserveOutgoingFunds } from '../_shared/paymentStore.ts';
 
 const MAX_AMOUNT_CENTS = 100000000;
 const RAILS = new Set(['ACH', 'FEDWIRE', 'INTERNAL']);
@@ -54,6 +54,24 @@ export default async function(req: Request): Promise<Response> {
         beneficiary_account_last4: accountLast4, memo,
       },
     });
+    // Reserve against the transactional ledger before creating the member-facing
+    // request. Missing ledger mapping or insufficient available funds fails closed.
+    let fundsReservation;
+    try {
+      fundsReservation = await reserveOutgoingFunds({
+        operationId: operation.id, accountRef: sourceAccountId,
+        amountCents: cents, actorId: member.id,
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : '';
+      if (reason.includes('INSUFFICIENT_AVAILABLE_FUNDS')) {
+        return Response.json({ error: 'Insufficient available funds for this transfer. Pending holds are included.' }, { status: 409 });
+      }
+      if (reason.includes('MEMBER_LEDGER_ACCOUNT_NOT_CONFIGURED')) {
+        return Response.json({ error: 'This account is not connected to an approved transactional ledger. No transfer request was created.' }, { status: 503 });
+      }
+      throw error;
+    }
     const lease = await acquireLease(`outgoing-transfer-projection:${operation.id}`,crypto.randomUUID(),120);
     if (!lease) return Response.json({error:'This request is being recorded by another worker. Retry with the same idempotency key.'},{status:409});
     try {
@@ -70,7 +88,7 @@ export default async function(req: Request): Promise<Response> {
           base44TransferRequestId: prior.id, idempotencyKey: `${member.id}:${key}`,
           sourceAccountRef: sourceAccountId, rail, amountCents: cents,
         });
-        return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, execution: 'not_submitted' }, { status: 200 });
+        return Response.json({ request: { id: prior.id, rail: prior.rail, amount_cents: prior.amount_cents, status: prior.status }, duplicate: true, funds_reserved: true, available_after_reservation_cents: fundsReservation.availableAfterCents, execution: 'not_submitted' }, { status: 200 });
       }
       if (!operation.created && operation.status !== 'accepted') {
         return Response.json({ error: 'This payment operation is no longer in an initial state. Operations review is required; do not create another key.' }, { status: 409 });
@@ -117,7 +135,9 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({
         request: { id: request.id, rail: request.rail, amount_cents: request.amount_cents, status: request.status },
         execution: 'not_submitted',
-        message: 'Request recorded. It has not been sent to a bank and no balance was debited.',
+        funds_reserved: true,
+        available_after_reservation_cents: fundsReservation.availableAfterCents,
+        message: 'Request recorded. The amount is reserved from available funds pending review; no bank transfer has been sent.',
       }, { status: 201 });
     } finally {
       await releaseLease(lease).catch(()=>false);
