@@ -55,3 +55,28 @@ Live processing stays disabled until all of the following are documented and tes
 7. Security review and production change approval completed.
 
 Until then, disable member-facing ACH and wire submission entirely. Do not expose sandbox/demo payment flows as substitutes for production. Do not debit balances, claim that funds were sent, or generate bank-looking confirmation numbers.
+
+
+## Production provider decision and release gates (2026-10-30)
+
+Plaid Transfer is the selected primary provider candidate for ACH and domestic wire, but the account is not confirmed as approved for Plaid Transfer Production or the early-availability wire network. Do not enable submission until Plaid approves the AVCU business/use case and the implementation checklist is complete.
+
+Plaid-specific requirements:
+- Complete the Production Request, Transfer Application/Questionnaire, and Transfer Document Collection. Plaid asks for business/use-case details, ACH processing history and projections, entity/individual verification, and control-person identity details where applicable.
+- Plaid Transfer is a Custom-plan product with a 12-month minimum contract. Plaid must approve the use case; Transfer for Platforms remains beta.
+- Wire is early availability. Request wire network access from the Plaid account manager. Plaid wire transfers are credit-only, have a documented $999,999.99 limit, and a 6:30 PM Eastern business-day cutoff.
+- ACH requires the correct approved SEC code and account linking. A valid Plaid authorization must be created before a transfer. Do not skip the authorization/risk decision.
+- Wire recipients require the Plaid account-migration flow and a wire routing number. The current member form's routing number plus account last four is not sufficient to initiate a Plaid wire.
+- Plaid webhook authenticity uses the `Plaid-Verification` ES256 JWT, Plaid's webhook verification key endpoint, a five-minute age check, and the signed raw-body SHA-256. Do not substitute a generic HMAC header.
+- Plaid's Transfer webhook is only a notification (`TRANSFER_EVENTS_UPDATE`). Fetch event details from `/transfer/event/sync`, persist the event cursor, and handle duplicates/out-of-order events. A notification alone must never change a transfer status.
+- Preserve provider transfer IDs separately from bank-generated references. Only store a bank reference when the provider/bank actually supplies one.
+
+Current code status:
+- Member intake creates an authenticated ACH/Fedwire request and does not debit an account.
+- Staff review/rejection and a separate second wire approver are implemented as server-side state transitions. Wire reviewer and approver IDs must differ.
+- ACH and Fedwire adapter contracts exist and are deliberately unconfigured/fail-closed. The submit endpoint also requires an approved state and provider-issued beneficiary account token.
+- Plaid webhook signature verification and notification intake are implemented, but the event-sync cursor and provider-specific event reconciliation still require completion and CI verification.
+- No Plaid Production credentials, Transfer approval, wire enablement, sponsor-bank/core settlement connection, Plaid Link account tokenization, or real bank reference has been confirmed. Do not claim live money movement.
+- Review/approval state changes use Base44 entity updates. Before enabling bank submission, replace the read-then-update state transition with a transactional/conditional-write mechanism that prevents concurrent reviewers/approvers from racing. Add unique provider-event/idempotency constraints at the persistence layer.
+
+Release gate: keep the submission adapter fail-closed and keep this PR in draft until Plaid approves AVCU, production credentials and the correct account-linking/beneficiary flows are configured, race-safe approval persistence is verified, webhook sync/reconciliation passes tests, and an authorized low-value live test is completed under the provider's approved limits.
