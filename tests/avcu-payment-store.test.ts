@@ -110,6 +110,13 @@ Deno.test({
           accountRef:`test:${accountA}`,amountCents:4000,actorId:'integration-test'});
         assertEquals(winningHold.duplicate,true);
         assertEquals(winningHold.availableAfterCents,1000);
+        const heldDebit=await assertRejects(()=>postBalancedJournal({
+          sourceType:'test_competing_debit',sourceId:key,idempotencyKey:`held-debit-${key}`,
+          description:'Must not consume funds reserved for an outgoing transfer',
+          entries:[{ledgerAccountId:accountA,amountCents:2000},{ledgerAccountId:accountB,amountCents:-2000}]
+        }));
+        assert(heldDebit.message.includes('INSUFFICIENT_AVAILABLE_FUNDS_AFTER_HOLDS'),
+          'Ledger debits must respect active outgoing reservations.');
         assertEquals(await transitionOutgoingFundsHold({operationId:winningOperation.id,
           status:'released',actorId:'integration-test',reason:'Test release'}),true);
         const afterRelease=await reserveOutgoingFunds({operationId:winningOperation.id,
