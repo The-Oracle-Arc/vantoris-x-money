@@ -91,6 +91,7 @@ export default function VantorisAssistant() {
       const result = await askOracle(contentForAgent);
       if (!result.ok) throw new Error(result.text || 'Assistant unavailable');
       setMessages((prev) => [...prev, { role: 'assistant', content: result.text }]);
+      setLoading(false);
 
     } catch (err) {
       setError('The assistant is temporarily unavailable. Please try again.');
