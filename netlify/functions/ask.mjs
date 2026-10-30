@@ -27,7 +27,7 @@ const PAID_MONTHLY_REQUESTS = Number(process.env.AI_PAID_MONTHLY_REQUESTS || 300
 const MAX_PROMPT_CHARS = 4000;
 const MAX_OUTPUT_TOKENS = Math.min(1200, Math.max(128, Number(process.env.AI_MAX_OUTPUT_TOKENS || 700)));
 const MAX_DAILY_SPEND_CENTS = Math.max(1, Number(process.env.AI_MAX_DAILY_SPEND_CENTS || 2000));
-const MAX_REQUEST_COST_CENTS = Math.max(1, Number(process.env.AI_MAX_REQUEST_COST_CENTS || 2));
+const MAX_REQUEST_COST_CENTS = Math.max(1, Number(process.env.AI_MAX_REQUEST_COST_CENTS || 10));
 
 async function reserveUsage(userId, monthlyLimit) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -92,9 +92,9 @@ async function readGemini(prompt) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('gemini_not_configured');
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }, contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS } }),
     signal: AbortSignal.timeout(20000),
   });
