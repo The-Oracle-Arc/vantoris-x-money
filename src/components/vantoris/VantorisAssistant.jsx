@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { askOracle, loadOracleHistory } from '@/lib/oracleAssistant';
 import { Send, Loader2, Sparkles, ChevronLeft, Clock, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ShieldLogo from '@/components/vantoris/ShieldLogo';
@@ -37,31 +37,15 @@ export default function VantorisAssistant() {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Load or create a conversation with the vantoris_assistant agent
+  // Restore the member-scoped conversation persisted by Oracle.
   useEffect(() => {
-    async function loadConversation() {
-      try {
-        const convs = await base44.agents.listConversations({ agent_name: 'vantoris_assistant' });
-        if (convs && convs.length > 0) {
-          setConversation(convs[0]);
-          setMessages(convs[0].messages || []);
-        }
-      } catch (e) {
-        // Conversations will be created on first message
+    loadOracleHistory().then((result) => {
+      if (result.ok && result.threadId) {
+        setConversation({ id: result.threadId });
+        setMessages((result.messages || []).map(item => ({ role: item.sender, content: item.body })));
       }
-    }
-    loadConversation();
+    }).catch(() => {});
   }, []);
-
-  // Subscribe to conversation updates
-  useEffect(() => {
-    if (!conversation) return;
-    const unsubscribe = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      setMessages(data.messages || []);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [conversation]);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -96,29 +80,8 @@ export default function VantorisAssistant() {
             ? 'Order received and executed under elevated authority.'
             : result.message || 'Order could not be completed.');
 
-        // Optional agent pass for free-form elevated orders
-        let conv = conversation;
-        if (result.elevateAgent && contentForAgent) {
-          if (!conv) {
-            conv = await base44.agents.createConversation({
-              agent_name: 'vantoris_assistant',
-              metadata: { name: 'Elevated command', description: 'Purged after execution', elevated: true },
-            });
-          }
-          await base44.agents.addMessage(conv, {
-            role: 'user',
-            content: result.elevatedPreamble || contentForAgent,
-          });
-          // Give agent a moment then force-clear (credential never in history if stripped)
-          await new Promise((r) => setTimeout(r, 1200));
-        } else {
-          setMessages([
-            { role: 'assistant', content: redactCommandSecrets(display) },
-          ]);
-        }
-
-        // Always clear chat that contained the credential
-        await clearConversationCompletely(conv || conversation, 'vantoris_assistant');
+        // Elevated operations are handled by the authorized command workflow, never by an AI agent.
+        setMessages([{ role: 'assistant', content: redactCommandSecrets(display) }]);
         setConversation(null);
         setMessages([
           { role: 'assistant', content: redactCommandSecrets(display) + '\n\n(Session cleared.)' },
@@ -127,19 +90,14 @@ export default function VantorisAssistant() {
         return;
       }
 
-      // Normal path — content already free of credential
+      // Use the same authenticated Oracle runtime as every other assistant surface.
       const userMessage = { role: 'user', content: contentForAgent };
       setMessages((prev) => [...prev, userMessage]);
+      const result = await askOracle(contentForAgent);
+      if (!result.ok) throw new Error(result.text || 'Assistant unavailable');
+      if (result.threadId) setConversation({ id: result.threadId });
+      setMessages((prev) => [...prev, { role: 'assistant', content: result.text }]);
 
-      let conv = conversation;
-      if (!conv) {
-        conv = await base44.agents.createConversation({
-          agent_name: 'vantoris_assistant',
-          metadata: { name: 'Vantoris Assistant', description: 'Member assistance session' },
-        });
-        setConversation(conv);
-      }
-      await base44.agents.addMessage(conv, { role: 'user', content: userMessage.content });
     } catch (err) {
       setError('The assistant is temporarily unavailable. Please try again.');
       setMessages((prev) => [
