@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 /** Route every browser assistant through the authenticated Oracle runtime. */
 export async function askOracle(message, options = {}) {
   const prompt = typeof message === 'string' ? message.trim() : '';
-  if (!prompt) return { ok: false, error: 'prompt_required', text: 'Enter a question to continue.' };
+  if (!prompt && options.action !== 'history') return { ok: false, error: 'prompt_required', text: 'Enter a question to continue.' };
   if (prompt.length > 4000) return { ok: false, error: 'prompt_too_long', text: 'Please keep your question under 4,000 characters.' };
   try {
     const result = await base44.functions.invoke('oracleRuntime', { message: prompt, action: options.action || 'process' });
