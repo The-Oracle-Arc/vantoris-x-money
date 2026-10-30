@@ -107,6 +107,20 @@ CREATE TABLE IF NOT EXISTS avcu_payments.payment_transfers (
   updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
+
+CREATE TABLE IF NOT EXISTS avcu_payments.payment_outbox (
+  id bigserial PRIMARY KEY,
+  source_event_id uuid NOT NULL UNIQUE REFERENCES avcu_payments.provider_events(id),
+  base44_transfer_request_id text NOT NULL,
+  target_status text NOT NULL,
+  attempts integer NOT NULL DEFAULT 0,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  delivered_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS payment_outbox_pending_idx
+  ON avcu_payments.payment_outbox(created_at) WHERE delivered_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS avcu_payments.ledger_entries (
   id uuid PRIMARY KEY,
   journal_id uuid NOT NULL REFERENCES avcu_payments.ledger_journals(id),
