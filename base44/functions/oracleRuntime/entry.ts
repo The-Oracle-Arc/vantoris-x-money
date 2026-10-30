@@ -23,6 +23,12 @@ export default async function(req) {
       return Response.json({ status: health.status || 'unknown', health, stages: bootStages || [] });
     }
 
+    if (action === 'history') {
+      const thread = await services.conversation.getOrCreateThread(user.id, 'AVCU Assistant');
+      const messages = await services.conversation.getRecentHistory(thread.id, 20);
+      return Response.json({ threadId: thread.id, messages: (messages || []).reverse() });
+    }
+
     if (typeof message !== 'string' || !message.trim()) {
       return Response.json({ error: 'Message is required' }, { status: 400 });
     }
