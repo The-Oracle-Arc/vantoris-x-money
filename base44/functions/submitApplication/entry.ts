@@ -15,6 +15,10 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
 
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return Response.json({ error: 'A valid JSON object is required' }, { status: 400 });
+    }
+
     const {
       account_type,
       full_name,
@@ -25,6 +29,27 @@ export default async function(req: Request): Promise<Response> {
       kyc_documents,
       reason,
     } = body;
+
+    // Treat all optional applicant fields as untrusted input. Bound lengths and
+    // reject malformed document references before any database writes.
+    const optionalText = [
+      ['phone', phone, 40],
+      ['address', address, 500],
+      ['business_name', business_name, 160],
+      ['reason', reason, 1000],
+    ] as const;
+    for (const [field, value, maxLength] of optionalText) {
+      if (value !== undefined && value !== null &&
+          (typeof value !== 'string' || value.length > maxLength)) {
+        return Response.json({ error: `Invalid ${field} value` }, { status: 400 });
+      }
+    }
+    if (kyc_documents !== undefined &&
+        (!Array.isArray(kyc_documents) || kyc_documents.length > 10 ||
+         kyc_documents.some((item: unknown) =>
+           typeof item !== 'string' || item.length > 2048))) {
+      return Response.json({ error: 'Invalid KYC document references' }, { status: 400 });
+    }
 
     const allowedAccountTypes = new Set(['Checking', 'Savings', 'Money Market', 'CD', 'Joint', 'Business']);
     if (typeof account_type !== 'string' || !allowedAccountTypes.has(account_type)) {
@@ -131,7 +156,8 @@ export default async function(req: Request): Promise<Response> {
     });
 
     return Response.json({ outcome: 'enquiry_created', enquiry });
-  } catch (error: any) {
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch {
+    // Do not expose database/provider details to unauthenticated clients.
+    return Response.json({ error: 'Application submission failed; please retry or contact support' }, { status: 500 });
   }
 }
