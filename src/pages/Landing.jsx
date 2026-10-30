@@ -87,17 +87,17 @@ const PILLARS = [
   {
     icon: Landmark,
     title: 'Private member banking',
-    body: 'Secure accounts, real-time balances, transfers, and Zelle-style payments designed for members who expect discretion and clarity.',
+    body: 'A private member workspace for account records, statements, and activity. Live balances and payment execution appear only after an authorized core-banking and payments provider is connected.',
   },
   {
     icon: CreditCard,
     title: 'Debit & credit services',
-    body: 'Request and manage eligible debit cards, track spend, and access card controls from a single member workspace.',
+    body: 'View card records and card activity when returned by an issuer integration. Issuance, spend authorization, and card controls require a connected, approved card processor.',
   },
   {
     icon: TrendingUp,
     title: 'Investment portfolios',
-    body: 'View holdings, deposits, and withdrawals with operator-grade oversight—so growth stays aligned with your goals.',
+    body: 'Review portfolio information and investment requests. Trading, custody, funding, and withdrawals require an authorized investment provider and applicable approvals.',
   },
   {
     icon: HandHeart,
@@ -109,15 +109,15 @@ const PILLARS = [
 const HELP = [
   {
     title: 'Working families',
-    text: 'Direct deposit, early access to pay, and simple tools to send and request money without friction.',
+    text: 'Clear account information, payment-request workflows, and activity history, with payment execution enabled only through approved providers.',
   },
   {
     title: 'Service members & veterans',
-    text: 'Priority pathways, HeroBox missions, and banking that respects the realities of deployment and transition.',
+    text: 'Member support, HeroBox missions, and clear financial information for service members, veterans, and their families.',
   },
   {
     title: 'Builders & entrepreneurs',
-    text: 'Business-ready account types, document vaults, and advisor access when decisions get complex.',
+    text: 'Business-oriented member tools, document organization, and access to support when decisions get complex.',
   },
   {
     title: 'Global citizens',
