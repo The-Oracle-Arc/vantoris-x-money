@@ -59,7 +59,16 @@ function createServices(base44, request) {
     },
     audit: {
       async log(entry) {
-        logger.info('audit.event', { ...entry, recordedAt: new Date().toISOString() });
+        const record = {
+          action_type: String(entry.actionType || 'assistant_event'),
+          description: String(entry.description || 'Assistant event').slice(0, 500),
+          details: String(entry.details || '').slice(0, 10000),
+          target_user_id: String(entry.targetUserId || ''),
+          actor_user_id: String(entry.actorUserId || ''),
+          created_at: new Date().toISOString(),
+        };
+        await base44.asServiceRole.entities.AIAuditEvent.create(record);
+        logger.info('audit.event', { actionType: record.action_type, targetUserId: record.target_user_id });
       },
     },
     health: {
