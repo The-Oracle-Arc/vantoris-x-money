@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import {
   listQueuedPlaidEvents, processPlaidProviderEvent,
-  listPendingPaymentOutbox, markPaymentOutboxDelivered,
+  claimPendingPaymentOutbox, markPaymentOutboxDelivered,
   recordPaymentOutboxFailure,
 } from '../_shared/paymentStore.ts';
 
@@ -49,7 +49,8 @@ export default async function(req: Request): Promise<Response> {
 
     // PostgreSQL is authoritative for the provider event and journal. This
     // outbox safely retries the Base44 UI projection if that write fails.
-    const pending = await listPendingPaymentOutbox(limit);
+    const outboxOwnerId = crypto.randomUUID();
+    const pending = await claimPendingPaymentOutbox(outboxOwnerId, limit, 90);
     for (const item of pending) {
       try {
         const transfer = await base44.asServiceRole.entities.TransferRequest.get(item.transferRequestId);
@@ -66,10 +67,10 @@ export default async function(req: Request): Promise<Response> {
           );
           if (!update?.success || update.updated !== 1) throw new Error('Concurrent Base44 transfer update.');
         }
-        if (await markPaymentOutboxDelivered(item.id)) projectionDelivered++;
+        if (await markPaymentOutboxDelivered(item.id, outboxOwnerId)) projectionDelivered++;
       } catch (error) {
         projectionFailed++;
-        await recordPaymentOutboxFailure(item.id, error instanceof Error ? error.message : 'Projection failed').catch(()=>{});
+        await recordPaymentOutboxFailure(item.id, outboxOwnerId, error instanceof Error ? error.message : 'Projection failed').catch(()=>{});
       }
     }
 
