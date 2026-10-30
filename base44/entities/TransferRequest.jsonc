@@ -63,6 +63,8 @@
         "awaiting_bank_review",
         "awaiting_dual_approval",
         "approved_awaiting_bank_submission",
+        "submitting_to_bank",
+        "submission_unknown",
         "submitted_to_bank",
         "pending_settlement",
         "settled",
