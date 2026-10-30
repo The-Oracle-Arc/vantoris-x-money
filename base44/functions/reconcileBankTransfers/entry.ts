@@ -12,6 +12,7 @@ const STATUS_MAP: Record<string, string> = {
   settled: 'settled',
   failed: 'failed',
   returned: 'returned',
+  cancelled: 'cancelled',
 };
 
 export default async function(req: Request): Promise<Response> {
@@ -23,7 +24,7 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'Authorized staff only.' }, { status: 403 });
     }
 
-    const providerId = Deno.env.get('AVCU_BANK_PROVIDER_ID');
+    const providerId = Deno.env.get('AVCU_BANK_PROVIDER_ID') || (Deno.env.get('PLAID_CLIENT_ID') ? 'plaid' : '');
     if (!providerId) return Response.json({ error: 'No production banking provider is configured.' }, { status: 503 });
 
     const body = await req.json().catch(() => null);
@@ -55,6 +56,15 @@ export default async function(req: Request): Promise<Response> {
       const matches = await base44.asServiceRole.entities.TransferRequest.filter(filters);
       if (!matches?.length) { unmatched++; await release('No matching transfer request'); continue; }
       const transfer = matches[0];
+      if (matches.length === 1 && Number.isSafeInteger(event.provider_event_sequence) &&
+          Number.isSafeInteger(transfer.webhook_last_event_sequence) &&
+          event.provider_event_sequence <= transfer.webhook_last_event_sequence) {
+        await base44.asServiceRole.entities.TransferWebhookEvent.update(event.id, {
+          processed: true, processing: false, processed_at: new Date().toISOString(), processing_error: 'Older or replayed provider event ignored.',
+        });
+        processed++;
+        continue;
+      }
       if (matches.length !== 1 || transfer.amount_cents !== event.amount_cents ||
           transfer.currency !== event.currency || transfer.rail === 'INTERNAL') {
         held++;
@@ -75,6 +85,7 @@ export default async function(req: Request): Promise<Response> {
           provider_transfer_id: event.transfer_id || transfer.provider_transfer_id || '',
           bank_reference: event.bank_reference || transfer.bank_reference || '',
           webhook_last_event_id: event.provider_event_id,
+          ...(Number.isSafeInteger(event.provider_event_sequence) ? { webhook_last_event_sequence: event.provider_event_sequence } : {}),
           ...(status === 'settled' ? { settled_at: new Date().toISOString() } : {}),
         } },
       );
