@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getTransferRailAdapter } from '../_shared/transferRails.ts';
+import { registerPaymentTransfer, setProviderTransferReference } from '../_shared/paymentStore.ts';
 
 const SUBMIT_ROLES = new Set(['admin', 'administrator', 'super_administrator', 'finance_officer', 'treasury_officer']);
 export default async function(req: Request): Promise<Response> {
@@ -30,6 +31,13 @@ export default async function(req: Request): Promise<Response> {
 
     const rail = transfer.rail === 'ACH' ? 'ACH' : transfer.rail === 'FEDWIRE' ? 'FEDWIRE' : null;
     if (!rail) return Response.json({ error: 'Unsupported transfer rail. No bank request was sent.' }, { status: 400 });
+    await registerPaymentTransfer({
+      base44TransferRequestId: transfer.id,
+      idempotencyKey: `${transfer.user_id}:${transfer.idempotency_key}`,
+      sourceAccountRef: transfer.source_account_id,
+      rail,
+      amountCents: transfer.amount_cents,
+    });
     const adapter = getTransferRailAdapter(rail);
     if (adapter.providerId === 'not-configured') {
       return Response.json({ error: 'Bank rail adapter is not configured. No bank request was sent and the request remains approved for manual handling.' }, { status: 503 });
@@ -68,27 +76,33 @@ export default async function(req: Request): Promise<Response> {
       );
       return Response.json({ error: 'Provider result is uncertain. Transfer locked for reconciliation; do not resubmit blindly.' }, { status: 503 });
     }
-    if (!result?.bankReference || !result.providerId) {
+    if (!result?.providerTransferId || !result.providerId) {
       await base44.asServiceRole.entities.TransferRequest.updateMany(
         { id: transfer.id, status: 'submitting_to_bank' },
         { $set: { status: 'submission_unknown', submission_error: 'Provider response lacked a verifiable reference.' } },
       );
       return Response.json({ error: 'Provider response is incomplete. Transfer locked for reconciliation; do not resubmit.' }, { status: 502 });
     }
+    await setProviderTransferReference({
+      base44TransferRequestId: transfer.id,
+      providerId: result.providerId,
+      providerTransferId: result.providerTransferId,
+    });
     const finalStatus = result.status === 'pending' ? 'pending_settlement' : 'submitted_to_bank';
     const committed = await base44.asServiceRole.entities.TransferRequest.updateMany(
       { id: transfer.id, status: 'submitting_to_bank' },
       { $set: {
         status: finalStatus,
         provider_id: result.providerId,
-        bank_reference: result.bankReference,
+        bank_reference: result.bankReference || result.providerTransferId,
+        provider_transfer_id: result.providerTransferId,
         submitted_at: result.acceptedAt,
       } },
     );
     if (!committed?.success || committed.updated !== 1) {
-      return Response.json({ error: 'Provider returned a bank reference but AVCU could not finalize the record. Escalate for reconciliation; do not resubmit.', bank_reference: result.bankReference }, { status: 500 });
+      return Response.json({ error: 'Provider returned a bank reference but AVCU could not finalize the record. Escalate for reconciliation; do not resubmit.', bank_reference: result.bankReference || result.providerTransferId }, { status: 500 });
     }
-    return Response.json({ submitted: true, bank_reference: result.bankReference, status: result.status });
+    return Response.json({ submitted: true, provider_transfer_id: result.providerTransferId, bank_reference: result.bankReference || '', status: result.status });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Transfer provider unavailable.';
     return Response.json({ error: message, execution: 'not_submitted' }, { status: 503 });
