@@ -159,7 +159,7 @@ export default async function(req: Request): Promise<Response> {
         : action === 'reconcile_settled'
           ? 'Your transfer was reconciled against bank evidence.'
           : 'The bank reported an exception for your transfer. Contact support for assistance.',
-      type: action === 'record_failure' || action === 'record_return' ? 'warning' : 'info',
+      type: 'info',
       read: false,
     });
 
