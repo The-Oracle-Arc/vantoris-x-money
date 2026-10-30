@@ -78,13 +78,23 @@ Deno.serve(async (req) => {
     // Opening balances are not accepted from callers. Funding requires a separate
     // authorized ledger/provider workflow and must never be created by this endpoint.
     const existingAccounts = await base44.asServiceRole.entities.Account.list('-created_date', 1000);
-    const existingNumbers = new Set((existingAccounts || []).map((a: any) => a.account_number).filter(Boolean));
+    // The SDK list is capped at 1,000 records. Fail closed at that boundary:
+    // checking only a truncated list must never be treated as proof of uniqueness.
+    if (!Array.isArray(existingAccounts) || existingAccounts.length >= 1000) {
+      return Response.json({
+        error: 'Account-number uniqueness cannot be verified safely; manual review is required',
+      }, { status: 503 });
+    }
+    const existingNumbers = new Set(existingAccounts.map((a: any) => a.account_number).filter(Boolean));
 
     let accountNumber = '';
     for (let attempts = 0; attempts < 100; attempts++) {
+      // BigInt preserves all 64 random bits; Number arithmetic would lose
+      // integer precision when combining two Uint32 values.
       const random = new Uint32Array(2);
       crypto.getRandomValues(random);
-      const candidate = String(1000000000 + ((random[0] * 0x100000000 + random[1]) % 9000000000)).slice(0, 10);
+      const random64 = (BigInt(random[0]) << 32n) | BigInt(random[1]);
+      const candidate = (1000000000n + (random64 % 9000000000n)).toString();
       if (!existingNumbers.has(candidate)) {
         accountNumber = candidate;
         break;
