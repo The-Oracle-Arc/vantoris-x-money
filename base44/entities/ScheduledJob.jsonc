@@ -1,0 +1,6 @@
+{
+  "name":"ScheduledJob","type":"object",
+  "properties":{"name":{"type":"string"},"schedule":{"type":"string"},"status":{"type":"string","enum":["pending","running","completed","failed","paused","cancelled"]},"retry_policy":{"type":"string"},"payload":{"type":"string"},"last_run":{"type":"string"}},
+  "required":["name","status"],
+  "rls":{"create":false,"read":{"user_condition":{"role":"super_administrator"}},"update":false,"delete":false}
+}
