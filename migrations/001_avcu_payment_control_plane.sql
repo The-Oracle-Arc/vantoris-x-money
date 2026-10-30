@@ -7,6 +7,32 @@ BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS avcu_payments;
 
+
+CREATE TABLE IF NOT EXISTS avcu_payments.provider_cursors (
+  provider_id text NOT NULL,
+  environment text NOT NULL CHECK (environment IN ('sandbox','production')),
+  after_id bigint NOT NULL DEFAULT 0 CHECK (after_id >= 0),
+  updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  PRIMARY KEY (provider_id, environment)
+);
+
+CREATE TABLE IF NOT EXISTS avcu_payments.payment_transfers (
+  id uuid PRIMARY KEY,
+  base44_transfer_request_id text NOT NULL UNIQUE,
+  idempotency_key text NOT NULL UNIQUE,
+  source_account_ref text NOT NULL,
+  provider_id text,
+  provider_transfer_id text UNIQUE,
+  rail text NOT NULL CHECK (rail IN ('ACH','FEDWIRE')),
+  amount_cents bigint NOT NULL CHECK (amount_cents > 0),
+  currency char(3) NOT NULL DEFAULT 'USD' CHECK (currency = 'USD'),
+  status text NOT NULL,
+  settled_journal_id uuid UNIQUE REFERENCES avcu_payments.ledger_journals(id),
+  last_event_sequence bigint,
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
+);
+
 CREATE TABLE IF NOT EXISTS avcu_payments.payment_operations (
   id uuid PRIMARY KEY,
   operation_type text NOT NULL,
@@ -29,6 +55,8 @@ CREATE TABLE IF NOT EXISTS avcu_payments.provider_events (
   event_type text NOT NULL,
   event_sequence bigint,
   payload_hash text NOT NULL,
+  amount_cents bigint CHECK (amount_cents IS NULL OR amount_cents > 0),
+  currency char(3) NOT NULL DEFAULT 'USD' CHECK (currency = 'USD'),
   verified_at timestamptz NOT NULL,
   processed_at timestamptz,
   processing_status text NOT NULL DEFAULT 'queued'
