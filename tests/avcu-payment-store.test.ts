@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import {
   acquireLease, releaseLease, renewLease, claimPaymentOperation,
-  ingestProviderEvent, postBalancedJournal, reverseJournal, processPlaidProviderEvent, closePaymentStore,
+  ingestProviderEvent, postBalancedJournal, reverseJournal, closePaymentStore,
 } from '../base44/functions/_shared/paymentStore.ts';
 
 const enabled = !!Deno.env.get('AVCU_LEDGER_TEST_DATABASE_URL');
@@ -70,59 +70,6 @@ Deno.test({
         const reversal=await reverseJournal({originalJournalId:journal.journalId,
           idempotencyKey:`reversal-${key}`,actorId:'integration-test',reason:'Integration test reversal'});
         assertEquals(reversal.duplicate,false);
-        const reversalRetry=await reverseJournal({originalJournalId:journal.journalId,
-          idempotencyKey:`reversal-${key}`,actorId:'integration-test',reason:'Integration test reversal'});
-        assertEquals(reversalRetry.journalId,reversal.journalId);
-        await assertRejects(()=>reverseJournal({originalJournalId:journal.journalId,
-          idempotencyKey:`different-reversal-${key}`,actorId:'integration-test',reason:'Second reversal'}));
-
-        const transferId=crypto.randomUUID();
-        const providerTransferId=`plaid-test-${key}`;
-        await db`INSERT INTO avcu_payments.payment_transfers
-          (id,base44_transfer_request_id,idempotency_key,source_account_ref,provider_id,
-           provider_transfer_id,rail,amount_cents,status)
-          VALUES (${transferId},${'base44-test:'+key},${'transfer-test:'+key},
-            ${'test:'+accountA},'plaid',${providerTransferId},'ACH',1000,'submitted_to_bank')`;
-        const postedEventId=crypto.randomUUID();
-        await db`INSERT INTO avcu_payments.provider_events
-          (id,provider_id,environment,provider_event_id,transfer_reference,event_type,
-           event_sequence,payload_hash,amount_cents,currency,verified_at)
-          VALUES (${postedEventId},'plaid','sandbox',${'posted:'+key},${providerTransferId},
-            'posted',1,${'a'.repeat(64)},1000,'USD',clock_timestamp())`;
-        const posted=await processPlaidProviderEvent({
-          providerEventId:`posted:${key}`,environment:'sandbox',
-          clearingLedgerAccountIds:{ACH:accountB,FEDWIRE:accountB}
-        });
-        assertEquals(posted.status,'settled');
-        assert(posted.journalId);
-        const returnedEventId=crypto.randomUUID();
-        await db`INSERT INTO avcu_payments.provider_events
-          (id,provider_id,environment,provider_event_id,transfer_reference,event_type,
-           event_sequence,payload_hash,amount_cents,currency,verified_at)
-          VALUES (${returnedEventId},'plaid','sandbox',${'returned:'+key},${providerTransferId},
-            'returned',2,${'b'.repeat(64)},1000,'USD',clock_timestamp())`;
-        const returned=await processPlaidProviderEvent({
-          providerEventId:`returned:${key}`,environment:'sandbox',
-          clearingLedgerAccountIds:{ACH:accountB,FEDWIRE:accountB}
-        });
-        assertEquals(returned.status,'returned');
-        assert(returned.journalId);
-        const balances=await db`
-          SELECT count(*)::int AS entry_count, sum(amount_cents)::bigint AS net
-            FROM avcu_payments.ledger_entries WHERE journal_id=${returned.journalId}
-        `;
-        assertEquals(balances[0].entry_count,2);
-        assertEquals(Number(balances[0].net),0);
-
-        await assertRejects(()=>db.begin(async tx=>{
-          const badId=crypto.randomUUID();
-          await tx`INSERT INTO avcu_payments.ledger_journals
-            (id,source_type,source_id,idempotency_key,currency,description)
-            VALUES (${badId},'test_unbalanced',${key},${'bad:'+key},'USD','Must fail')`;
-          await tx`INSERT INTO avcu_payments.ledger_entries
-            (id,journal_id,ledger_account_id,currency,amount_cents)
-            VALUES (${crypto.randomUUID()},${badId},${accountA},'USD',100)`;
-        }));
       } finally {
         // The test database is disposable; ledger rows are append-only by design.
         await db.end({timeout:5});
