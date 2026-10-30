@@ -1,6 +1,6 @@
 {
   "name":"AIConversation","type":"object",
-  "properties":{"user_id":{"type":"string"},"title":{"type":"string"},"status":{"type":"string","enum":["active","archived"],"default":"active"}},
+  "properties":{"user_id":{"type":"string"},"title":{"type":"string"},"memory_summary":{"type":"string"},"preferences":{"type":"string"},"status":{"type":"string","enum":["active","archived"],"default":"active"}},
   "required":["user_id","title"],
   "rls":{"create":false,"read":{"data.user_id":"{{user.id}}"},"update":false,"delete":false}
 }
