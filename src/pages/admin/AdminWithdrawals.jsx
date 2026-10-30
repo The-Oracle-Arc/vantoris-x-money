@@ -276,7 +276,7 @@ export default function AdminWithdrawals() {
   return (
     <OperationsPageLayout
       title="Withdrawals"
-      description="Enterprise withdrawal management workspace"
+      description="Read-only payment review · no bank settlement or ledger posting from this screen"
       icon={ArrowUpRight}
       breadcrumb="Operations · Payment review"
       actions={
@@ -419,7 +419,8 @@ export default function AdminWithdrawals() {
                         <button
                           key={action.id}
                           onClick={() => setBulkAction(action.id)}
-                          disabled={submitting}
+                          disabled={submitting || (!SERVER_OPERATIONS_MUTATIONS_ENABLED && action.id !== "export")}
+                          title={action.id === "export" ? "Export selected records" : "Disabled until server-side payment controls are deployed"}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all disabled:opacity-40 ${action.color}`}
                         >
                           <Icon size={12} /> {action.label}
@@ -595,10 +596,10 @@ export default function AdminWithdrawals() {
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <button onClick={handlePay} disabled={submitting} className="py-2.5 bg-mint text-white rounded-lg text-xs font-semibold hover:bg-mint/90 disabled:opacity-40 flex items-center justify-center gap-1.5">
+                        <button onClick={handlePay} disabled={submitting || !SERVER_OPERATIONS_MUTATIONS_ENABLED} title="Disabled until server-side payment controls are deployed" className="py-2.5 bg-mint text-white rounded-lg text-xs font-semibold hover:bg-mint/90 disabled:opacity-40 flex items-center justify-center gap-1.5">
                           {submitting ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Approve
                         </button>
-                        <button onClick={handleReject} disabled={submitting} className="py-2.5 bg-crimson text-white rounded-lg text-xs font-semibold hover:bg-crimson/90 disabled:opacity-40 flex items-center justify-center gap-1.5">
+                        <button onClick={handleReject} disabled={submitting || !SERVER_OPERATIONS_MUTATIONS_ENABLED} title="Disabled until server-side payment controls are deployed" className="py-2.5 bg-crimson text-white rounded-lg text-xs font-semibold hover:bg-crimson/90 disabled:opacity-40 flex items-center justify-center gap-1.5">
                           <X size={13} /> Reject
                         </button>
                       </div>
@@ -759,10 +760,10 @@ export default function AdminWithdrawals() {
                     <textarea value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-foreground text-sm focus:outline-none resize-none" rows={3} />
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={handlePay} disabled={submitting} className="flex-1 py-3 bg-mint text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-mint/90 disabled:opacity-40">
-                      {submitting ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16} /> Mark Paid</>}
+                    <button onClick={handlePay} disabled={submitting || !SERVER_OPERATIONS_MUTATIONS_ENABLED} title="Disabled until server-side payment controls are deployed" className="flex-1 py-3 bg-mint text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-mint/90 disabled:opacity-40">
+                      {submitting ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16} /> Settlement disabled</>}
                     </button>
-                    <button onClick={handleReject} disabled={submitting} className="flex-1 py-3 bg-crimson text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-crimson/80 disabled:opacity-40">
+                    <button onClick={handleReject} disabled={submitting || !SERVER_OPERATIONS_MUTATIONS_ENABLED} title="Disabled until server-side payment controls are deployed" className="flex-1 py-3 bg-crimson text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-crimson/80 disabled:opacity-40">
                       <X size={16} /> Reject
                     </button>
                   </div>
