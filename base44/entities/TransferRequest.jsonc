@@ -2,41 +2,180 @@
   "name": "TransferRequest",
   "type": "object",
   "properties": {
-    "user_id": { "type": "string" },
-    "source_account_id": { "type": "string" },
-    "rail": { "type": "string", "enum": ["ACH", "FEDWIRE", "INTERNAL"] },
-    "direction": { "type": "string", "enum": ["outgoing", "incoming"] },
-    "amount_cents": { "type": "integer", "minimum": 1, "maximum": 100000000 },
-    "currency": { "type": "string", "enum": ["USD"], "default": "USD" },
-    "beneficiary_name": { "type": "string" },
-    "beneficiary_bank_name": { "type": "string" },
-    "beneficiary_routing_number": { "type": "string" },
-    "beneficiary_account_last4": { "type": "string" },
-    "beneficiary_account_token": { "type": "string", "description": "Opaque token from an approved bank/payment provider only; never raw account credentials." },
-    "memo": { "type": "string" },
-    "idempotency_key": { "type": "string" },
-    "status": { "type": "string", "enum": ["awaiting_bank_review", "awaiting_dual_approval", "submitted_to_bank", "pending_settlement", "settled", "rejected", "failed", "returned", "cancelled"], "default": "awaiting_bank_review" },
-    "bank_reference": { "type": "string" },
-    "reviewer_user_id": { "type": "string" },
-    "approver_user_id": { "type": "string" },
-    "submitted_at": { "type": "string" },
-    "settled_at": { "type": "string" },
-    "failure_reason": { "type": "string" }
+    "user_id": {
+      "type": "string"
+    },
+    "source_account_id": {
+      "type": "string"
+    },
+    "rail": {
+      "type": "string",
+      "enum": [
+        "ACH",
+        "FEDWIRE",
+        "INTERNAL"
+      ]
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "outgoing",
+        "incoming"
+      ]
+    },
+    "amount_cents": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000000
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "USD"
+      ],
+      "default": "USD"
+    },
+    "beneficiary_name": {
+      "type": "string"
+    },
+    "beneficiary_bank_name": {
+      "type": "string"
+    },
+    "beneficiary_routing_number": {
+      "type": "string"
+    },
+    "beneficiary_account_last4": {
+      "type": "string"
+    },
+    "beneficiary_account_token": {
+      "type": "string",
+      "description": "Opaque token from an approved bank/payment provider only; never raw account credentials."
+    },
+    "memo": {
+      "type": "string"
+    },
+    "idempotency_key": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "awaiting_bank_review",
+        "awaiting_dual_approval",
+        "approved_awaiting_bank_submission",
+        "submitted_to_bank",
+        "pending_settlement",
+        "settled",
+        "rejected",
+        "failed",
+        "returned",
+        "cancelled"
+      ],
+      "default": "awaiting_bank_review"
+    },
+    "bank_reference": {
+      "type": "string"
+    },
+    "reviewer_user_id": {
+      "type": "string"
+    },
+    "approver_user_id": {
+      "type": "string"
+    },
+    "submitted_at": {
+      "type": "string"
+    },
+    "settled_at": {
+      "type": "string"
+    },
+    "failure_reason": {
+      "type": "string"
+    },
+    "reviewer_note": {
+      "type": "string"
+    },
+    "approver_note": {
+      "type": "string"
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string"
+    },
+    "approved_at": {
+      "type": "string"
+    },
+    "provider_id": {
+      "type": "string"
+    },
+    "provider_transfer_id": {
+      "type": "string"
+    },
+    "webhook_last_event_id": {
+      "type": "string"
+    },
+    "reconciled_at": {
+      "type": "string"
+    }
   },
-  "required": ["user_id", "source_account_id", "rail", "direction", "amount_cents", "currency", "status", "idempotency_key"],
+  "required": [
+    "user_id",
+    "source_account_id",
+    "rail",
+    "direction",
+    "amount_cents",
+    "currency",
+    "status",
+    "idempotency_key"
+  ],
   "rls": {
     "create": false,
     "read": {
       "$or": [
-        { "data.user_id": "{{user.id}}" },
-        { "user_condition": { "role": "admin" } },
-        { "user_condition": { "role": "administrator" } },
-        { "user_condition": { "role": "super_administrator" } },
-        { "user_condition": { "role": "operations_officer" } },
-        { "user_condition": { "role": "finance_officer" } },
-        { "user_condition": { "role": "treasury_officer" } },
-        { "user_condition": { "role": "compliance_officer" } },
-        { "user_condition": { "role": "auditor" } }
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "super_administrator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "operations_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "finance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "treasury_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "compliance_officer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "auditor"
+          }
+        }
       ]
     },
     "update": false,
